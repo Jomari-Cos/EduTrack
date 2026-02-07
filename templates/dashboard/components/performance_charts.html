@@ -1,0 +1,76 @@
+<section class="mt-8">
+  <h2 class="text-2xl font-bold text-gray-900 mb-4">Overall Performance Charts</h2>
+
+  <div id="date-range-picker" date-rangepicker class="flex flex-wrap items-center gap-3 mb-6">
+    <div class="flex-grow sm:flex-grow-0">
+      <select id="sectionSelect" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-48 sm:w-56 p-2.5">
+        <option value="">Choose Section</option>
+      </select>
+    </div>
+    <div><input type="date" class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500" id="sdate" name="start_date" required></div>
+    <span class="text-gray-500">to</span>
+    <div><input type="date" class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500" id="edate" name="end_date" required></div>
+  </div>
+
+  <div class="overflow-y-auto max-h-[600px] grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Chart 1 -->
+    <div>
+      <h4 class="mb-2 text-lg font-semibold text-gray-800">Attendance Overview</h4>
+      <p class="mb-4 text-sm text-gray-500">Track how often students attend classes (Present, Absent, Late).</p>
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <p class="font-medium text-slate-800 mb-4">Attendance Rate</p>
+        <div class="w-full h-64"><canvas id="attendanceChart" class="w-full h-full"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Chart 2 -->
+    <div>
+      <h4 class="mb-2 text-lg font-semibold text-gray-800">Overall Scores</h4>
+      <p class="mb-4 text-sm text-gray-500">Visualize distribution of student scores across subjects.</p>
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <p class="font-medium text-slate-800 mb-4">Scores by Subject</p>
+        <div class="w-full h-64"><canvas id="scoreChart" class="w-full h-full"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Chart 3 -->
+    <div>
+      <h4 class="mb-2 text-lg font-semibold text-gray-800">Average Score Trend</h4>
+      <p class="mb-4 text-sm text-gray-500">Average performance over time or per subject.</p>
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <p class="font-medium text-slate-800 mb-4">Average Score Progress</p>
+        <div class="w-full h-64"><canvas id="averageScoreChart" class="w-full h-full"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Chart 4 -->
+    <div>
+      <h4 class="mb-2 text-lg font-semibold text-gray-800">Section Comparison</h4>
+      <p class="mb-4 text-sm text-gray-500">Compare attendance and scores between sections.</p>
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <p class="font-medium text-slate-800 mb-4">Performance by Section</p>
+        <div class="w-full h-64"><canvas id="metricChart" class="w-full h-full"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Chart 5 -->
+    <div>
+      <h4 class="mb-2 text-lg font-semibold text-gray-800">Score vs Attendance Correlation</h4>
+      <p class="mb-4 text-sm text-gray-500">Explore attendance-performance relationship.</p>
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <p class="font-medium text-slate-800 mb-4">Correlation Insights</p>
+        <div class="w-full h-64"><canvas id="ScoreVsAttendance" class="w-full h-full"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Chart 6 -->
+    <div>
+      <h4 class="mb-2 text-lg font-semibold text-gray-800">Attendance Trend Over Time</h4>
+      <p class="mb-4 text-sm text-gray-500">Weekly attendance changes throughout term.</p>
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <p class="font-medium text-slate-800 mb-4">Weekly Attendance Pattern</p>
+        <div class="w-full h-64"><canvas id="attendanceTrendChart" class="w-full h-full"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>

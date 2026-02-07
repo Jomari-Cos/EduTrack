@@ -1,0 +1,61 @@
+<div id="studentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all scale-95">
+    <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-blue-600 text-white">
+      <div class="flex items-center gap-4">
+        <img src="" alt="Student Photo" class="modal-student-photo w-20 h-20 rounded-full object-cover ring-2 ring-white shadow-md">
+        <div>
+          <h3 class="modal-student-name text-2xl font-semibold">Student Name</h3>
+          <p class="modal-student-class text-sm text-blue-100">Grade X - Section Y</p>
+          <p class="modal-student-id text-sm text-blue-200">Student ID: <span id="modalStudentId">#00000</span></p>
+        </div>
+      </div>
+      <button id="closeModal" class="p-2 rounded-full hover:bg-white/20 transition">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-500">show_chart</span>
+            Performance Trend
+          </h3>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="modalPerformanceChart"></canvas>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-6">
+          <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 flex-1 shadow-sm">
+            <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-blue-500">event_available</span>
+              Attendance & Punctuality
+            </h3>
+            <div class="flex justify-around text-center">
+              <div><p id="modalPresentCount" class="text-2xl font-bold text-green-600">0</p><p class="text-sm text-gray-600">Present</p></div>
+              <div><p id="modalLateCount" class="text-2xl font-bold text-yellow-500">0</p><p class="text-sm text-gray-600">Late</p></div>
+              <div><p id="modalAbsentCount" class="text-2xl font-bold text-red-500">0</p><p class="text-sm text-gray-600">Absent</p></div>
+            </div>
+            <div class="mt-4 text-center">
+              <p id="modalAttendanceRate" class="text-xl font-semibold text-blue-600">0%</p>
+              <p class="text-sm text-gray-600">Attendance Rate</p>
+            </div>
+          </div>
+
+          <div id="modalSubjectScores" class="bg-gray-50 p-5 rounded-xl border border-gray-200 flex-1 shadow-sm">
+            <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-purple-500">grade</span>
+              Average Score per Subject
+            </h3>
+            <!-- JS dynamically fills progress bars here -->
+          </div>
+        </div>
+      </div>
+
+      <div id="modalAIInsight" class="mt-4 bg-white/70 p-4 rounded-lg shadow-inner border border-gray-200">
+        <p class="text-gray-400 italic">AI feedback will appear here...</p>
+      </div>
+    </div>
+  </div>
+</div>

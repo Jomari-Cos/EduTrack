@@ -1,0 +1,457 @@
+/* Base Styles & Variables */
+:root {
+  --primary: #1e40af;
+  --primary-light: #3b82f6;
+  --primary-dark: #1e3a8a;
+  --primary-accent: #dbeafe;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --neutral-50: #f9fafb;
+  --neutral-100: #f3f4f6;
+  --neutral-200: #e5e7eb;
+  --neutral-300: #d1d5db;
+  --neutral-700: #374151;
+  --neutral-800: #1f2937;
+  --neutral-900: #111827;
+  --glass-bg: #ffffff;
+  --glass-border: #e5e7eb;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --card-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --card-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Modern Background */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #f9fafb;
+  color: var(--neutral-800);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* Header Styles */
+header.w-full {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-bottom: 1px solid var(--primary-dark);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
+}
+
+/* Navigation */
+nav button {
+  position: relative;
+  transition: all 0.2s ease;
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+}
+
+nav button::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.6);
+  transition: width 0.3s ease;
+}
+
+nav button:hover::after {
+  width: 100%;
+}
+
+/* Panel Transitions */
+.panel {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.panel.hidden {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.panel:not(.hidden) {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Card Animations */
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Updated Student Card Animations - Top to Bottom Fade */
+@keyframes cardFadeInTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Apply the new animation to student cards */
+.student-card {
+  animation: cardFadeInTop 0.6s ease-out forwards;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+/* Stagger the animations for multiple cards */
+.student-card:nth-child(1) { animation-delay: 0.1s; }
+.student-card:nth-child(2) { animation-delay: 0.2s; }
+.student-card:nth-child(3) { animation-delay: 0.3s; }
+.student-card:nth-child(4) { animation-delay: 0.4s; }
+.student-card:nth-child(5) { animation-delay: 0.5s; }
+.student-card:nth-child(6) { animation-delay: 0.6s; }
+.student-card:nth-child(7) { animation-delay: 0.7s; }
+.student-card:nth-child(8) { animation-delay: 0.8s; }
+.student-card:nth-child(9) { animation-delay: 0.9s; }
+.student-card:nth-child(10) { animation-delay: 1.0s; }
+
+/* Quick Stats Cards */
+.bg-white {
+  background: white;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  padding: 1.5rem;
+}
+
+/* Quick stats card animations */
+.grid-cols-4 > div {
+  animation: cardFadeIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.grid-cols-4 > div:nth-child(1) { animation-delay: 0.1s; }
+.grid-cols-4 > div:nth-child(2) { animation-delay: 0.2s; }
+.grid-cols-4 > div:nth-child(3) { animation-delay: 0.3s; }
+.grid-cols-4 > div:nth-child(4) { animation-delay: 0.4s; }
+
+
+
+/* Buttons */
+button {
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-md);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+#logout-btn {
+  background: var(--danger);
+  color: white;
+}
+
+#logout-btn:hover {
+  background: #991b1b;
+}
+
+#fullscreen-btn {
+  background: var(--neutral-800);
+  color: white;
+}
+
+#fullscreen-btn:hover {
+  background: var(--neutral-900);
+}
+
+/* Teacher Profile Card */
+.teacher-card {
+  background: white;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow-md);
+  border-radius: 12px;
+  padding: 1.5rem;
+  animation: cardFadeIn 0.6s ease-out forwards;
+  opacity: 0;
+  animation-delay: 0.1s;
+}
+
+.teacher-profile img, .teacher-profile div {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Charts & Graphs */
+canvas {
+  border-radius: 12px;
+  background: white;
+  border: 1px solid var(--glass-border);
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+}
+
+/* Modal Styles */
+#studentModal, #attendanceModal, #points-modal {
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow-lg);
+  animation: modalSlideIn 0.3s ease-out;
+  padding: 2rem;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .teacher-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  #studentModal .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-bg: rgba(0, 0, 0, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+
+  .bg-white {
+    background: var(--glass-bg);
+  }
+
+  canvas {
+    background: var(--glass-bg);
+  }
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Loading States */
+.loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Additional Student Card Styles */
+.student-card {
+  background: white;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.student-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-md);
+}
+
+/* Face Recognition Styles */
+.video-container {
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#video, #overlay {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* Face list items */
+.face-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.face-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.face-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  margin-right: 12px;
+}
+
+.face-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.face-name {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.face-details {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.face-confidence {
+  background: #10b981;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Status badges */
+.tracking-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tracking-on {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.tracking-off {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .video-container {
+    height: 300px;
+  }
+  
+  #video, #overlay {
+    height: 300px;
+    object-fit: cover;
+  }
+}

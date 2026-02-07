@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Recognition - Face Recognition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            background: black;
+            border-radius: 10px;
+            overflow: hidden;
+            min-height: 500px;
+        }
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+            position: relative;
+            z-index: 1;
+            transform: scaleX(-1);
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            transform: scaleX(-1);
+        }
+        .face-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 5px solid #4CAF50;
+            transition: all 0.3s;
+        }
+        .face-card:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .unknown-face {
+            border-left-color: #f44336;
+        }
+        .tracking-face {
+            border-left-color: #2196F3;
+        }
+        .recognition-badge {
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        #noCamera {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .section-filter-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        .section-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .person-badge {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .tracking-badge {
+            background: linear-gradient(135deg, #2196F3 0%, #0D47A1 100%);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .search-speed {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .tracking-stats {
+            background: rgba(33, 150, 243, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .track-id {
+            font-family: monospace;
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .optimization-badge {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .student-info-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #4facfe !important;
+}
+
+.zone-indicator {
+    position: absolute;
+    border: 2px dashed rgba(0, 255, 255, 0.7);
+    background: rgba(0, 255, 255, 0.1);
+    pointer-events: none;
+    z-index: 3;
+}
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .hand-raise-icon {
+            animation: handWave 2s infinite;
+        }
+        @keyframes handWave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        .person-details .form-control {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .hand-side-badge {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .raised-hand-badge {
+            background: linear-gradient(135deg, #FF5722 0%, #D84315 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .debug-mode-indicator {
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        .hand-badge {
+            background: linear-gradient(135deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .hand-landmark-point {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #9C27B0;
+            border-radius: 50%;
+            z-index: 5;
+        }
+        .hand-connection {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <!-- Section Filter Card -->
+                <div class="section-filter-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5><i class="fas fa-filter me-2"></i>Section Filter & Tracking</h5>
+                            <p class="text-muted mb-2">Select a section and enable face tracking for optimized performance</p>
+                            <div class="input-group mb-2">
+                                <select class="form-select" id="sectionFilter">
+                                    <option value="">All Sections (Full Database Search)</option>
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                                <button class="btn btn-outline-primary" onclick="refreshSections()">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enableTracking" checked>
+                                <label class="form-check-label" for="enableTracking">
+                                    <i class="fas fa-id-card me-2"></i>Enable Face Tracking
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enableHandDetection" checked>
+                                <label class="form-check-label" for="enableHandDetection">
+                                    <i class="fas fa-hand-paper me-2"></i>Enable Hand Raise Detection
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="debugMode">
+                                <label class="form-check-label" for="debugMode">
+                                    <i class="fas fa-bug me-2"></i>Debug Mode (Show detection zones)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="section-badge mb-2" id="selectedSectionInfo">
+                                    All Sections
+                                </div>
+                                <div class="mb-2">
+                                    <span id="sectionPersonCount" class="person-badge">All persons</span>
+                                    <span id="trackingStatus" class="tracking-badge">Tracking ON</span>
+                                </div>
+                                <div class="search-speed">
+                                    <i class="fas fa-bolt me-1"></i>
+                                    <span id="searchSpeed">Optimized search</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tracking Stats -->
+                    <div class="tracking-stats mt-3">
+                        <div class="row text-center">
+                            <div class="col-3">
+                                <h5 id="activeTracks">0</h5>
+                                <small class="text-muted">Active Tracks</small>
+                            </div>
+                            <div class="col-3">
+                                <h5 id="recognitionCount">0</h5>
+                                <small class="text-muted">Recognition Calls</small>
+                            </div>
+                            <div class="col-3">
+                                <h5 id="optimizationRate">100%</h5>
+                                <small class="text-muted">Optimization</small>
+                            </div>
+                            <div class="col-3">
+                                <h5 id="handCount">0</h5>
+                                <small class="text-muted">Hands Detected</small>
+                            </div>
+                        </div>
+                        <div class="text-center mt-2">
+                            <button onclick="clearTracking()" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-redo me-2"></i>Clear Tracking
+                            </button>
+                            <button onclick="testModal()" class="btn btn-sm btn-outline-success ms-2">
+                                <i class="fas fa-hand-paper me-2"></i>Test Modal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Video Container -->
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">
+                            <i class="fas fa-search me-2"></i>Live Face Recognition with Hand Detection
+                        </h1>
+                        <div>
+                            <a href="/" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-home me-2"></i>Home
+                            </a>
+                            <button id="toggleCamera" class="btn btn-primary">
+                                <i class="fas fa-play me-2"></i>Start Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <video id="video" width="100%" height="auto" autoplay></video>
+                        <canvas id="overlay"></canvas>
+                        <div id="noCamera" class="text-center text-white p-5" style="display: none;">
+                            <h3><i class="fas fa-video-slash me-2"></i>Camera Access Required</h3>
+                            <p>Please allow camera access to use face recognition.</p>
+                            <button id="retryCamera" class="btn btn-light mt-3">
+                                <i class="fas fa-redo me-2"></i>Retry Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoRecognition" checked>
+                                <label class="form-check-label" for="autoRecognition">
+                                    <i class="fas fa-robot me-2"></i>Enable auto-recognition (process every 2 seconds)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showTrackIDs" checked>
+                                <label class="form-check-label" for="showTrackIDs">
+                                    <i class="fas fa-hashtag me-2"></i>Show Track IDs
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showLandmarks" checked>
+                                <label class="form-check-label" for="showLandmarks">
+                                    <i class="fas fa-dot-circle me-2"></i>Show Face Landmarks
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showHandLandmarks" checked>
+                                <label class="form-check-label" for="showHandLandmarks">
+                                    <i class="fas fa-hand-paper me-2"></i>Show Hand Landmarks
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card p-4 h-100">
+                    <h4 class="mb-4">
+                        <i class="fas fa-users me-2"></i>Recognition Results
+                    </h4>
+                    
+                    <div class="stats-card">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h3 id="detectedFaces">0</h3>
+                                <p class="text-muted">Faces</p>
+                            </div>
+                            <div class="col-4">
+                                <h3 id="recognizedFaces">0</h3>
+                                <p class="text-muted">Recognized</p>
+                            </div>
+                            <div class="col-4">
+                                <h3 id="detectedHands">0</h3>
+                                <p class="text-muted">Hands</p>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <div class="search-speed">
+                                <i class="fas fa-clock me-1"></i>
+                                Last recognition: <span id="lastRecognitionTime">-</span>
+                            </div>
+                            <div class="search-speed mt-1">
+                                <i class="fas fa-microchip me-1"></i>
+                                Processing: <span id="processingTime">0ms</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mt-4">
+                        <i class="fas fa-user-friends me-2"></i>Tracked Faces:
+                        <span class="badge bg-secondary" id="trackedFacesCount">0</span>
+                    </h5>
+                    <div id="facesList" class="mt-3" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-center text-muted p-4">
+                            <i class="fas fa-user-slash fa-2x mb-3"></i>
+                            <p>No faces detected yet.</p>
+                            <p>Start the camera to begin recognition.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-top">
+                        <h5>
+                            <i class="fas fa-database me-2"></i>Database Info
+                        </h5>
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Sections:</strong></p>
+                                <p class="mb-1"><strong>Total Persons:</strong></p>
+                                <p class="mb-0"><strong>Session ID:</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="mb-1" id="dbSections">0</p>
+                                <p class="mb-1" id="dbPersons">0</p>
+                                <p class="mb-0 text-truncate" id="sessionId" style="max-width: 150px;">-</p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button onclick="refreshDatabase()" class="btn btn-sm btn-outline-primary w-100 mb-2">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh Database
+                            </button>
+                            <button onclick="copySessionId()" class="btn btn-sm btn-outline-secondary w-100">
+                                <i class="fas fa-copy me-2"></i>Copy Session ID
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hand Raise Modal -->
+    <div id="handRaiseModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-hand-paper me-2"></i>Hand Raised Detected!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <!-- Update the modal-body section in recognize.html -->
+<div class="modal-body">
+    <div class="text-center mb-4">
+        <div class="hand-raise-icon mb-3">
+            <i class="fas fa-hand-paper fa-4x text-primary"></i>
+        </div>
+        <h4>Student Raised Hand</h4>
+        <p class="text-muted">This person raised their hand in their personal zone</p>
+    </div>
+    
+    <div class="row align-items-center">
+        <div class="col-md-5">
+            <div id="modalFaceImage" class="mb-3">
+                <div class="text-center">
+                    <div class="mb-3" style="font-size: 4rem;">👤</div>
+                    <p>Face Preview</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="student-info-card p-3 border rounded">
+                <h5 class="mb-3">Student Information</h5>
+                <div class="row mb-2">
+                    <div class="col-5"><strong>Name:</strong></div>
+                    <div class="col-7 text-end" id="modalPersonName">-</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-5"><strong>ID Number:</strong></div>
+                    <div class="col-7 text-end" id="modalPersonId">-</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-5"><strong>Section:</strong></div>
+                    <div class="col-7 text-end" id="modalPersonSection">-</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-5"><strong>Confidence:</strong></div>
+                    <div class="col-7 text-end" id="modalPersonConfidence">-</div>
+                </div>
+                <div class="alert alert-warning p-2">
+                    <i class="fas fa-hand-paper me-2"></i>
+                    <span id="modalHandSide">Hand raised in personal zone</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close Now
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="acknowledgeHandRaise()">
+                        <i class="fas fa-check me-2"></i>Acknowledge
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let recognitionInterval = null;
+        let isProcessing = false;
+        let autoRecognition = true;
+        let enableTracking = true;
+        let enableHandDetection = true;
+        let debugMode = false;
+        let showHandLandmarks = true;
+        let selectedSection = '';
+        let availableSections = [];
+        let lastRecognitionTime = null;
+        let sessionId = null;
+        let trackingStats = {
+            totalFrames: 0,
+            recognitionCalls: 0,
+            trackedFaces: 0,
+            activeTracks: 0,
+            handCount: 0
+        };
+        
+        // Modal management variables
+        let modalTimer = null;
+        let modalCountdown = 5;
+        let currentModalTrackId = null;
+        let modal = null;
+        
+        // DOM Elements
+        const video = document.getElementById('video');
+        const overlay = document.getElementById('overlay');
+        const toggleCameraBtn = document.getElementById('toggleCamera');
+        const retryCameraBtn = document.getElementById('retryCamera');
+        const noCameraDiv = document.getElementById('noCamera');
+        const autoRecognitionCheck = document.getElementById('autoRecognition');
+        const enableTrackingCheck = document.getElementById('enableTracking');
+        const enableHandDetectionCheck = document.getElementById('enableHandDetection');
+        const debugModeCheck = document.getElementById('debugMode');
+        const showTrackIDsCheck = document.getElementById('showTrackIDs');
+        const showLandmarksCheck = document.getElementById('showLandmarks');
+        const showHandLandmarksCheck = document.getElementById('showHandLandmarks');
+        const detectedFacesEl = document.getElementById('detectedFaces');
+        const recognizedFacesEl = document.getElementById('recognizedFaces');
+        const detectedHandsEl = document.getElementById('detectedHands');
+        const facesList = document.getElementById('facesList');
+        const sectionFilter = document.getElementById('sectionFilter');
+        const selectedSectionInfo = document.getElementById('selectedSectionInfo');
+        const sectionPersonCount = document.getElementById('sectionPersonCount');
+        const trackingStatus = document.getElementById('trackingStatus');
+        const searchSpeed = document.getElementById('searchSpeed');
+        const lastRecognitionTimeEl = document.getElementById('lastRecognitionTime');
+        const processingTimeEl = document.getElementById('processingTime');
+        const dbSections = document.getElementById('dbSections');
+        const dbPersons = document.getElementById('dbPersons');
+        const sessionIdEl = document.getElementById('sessionId');
+        const activeTracksEl = document.getElementById('activeTracks');
+        const recognitionCountEl = document.getElementById('recognitionCount');
+        const optimizationRateEl = document.getElementById('optimizationRate');
+        const handCountEl = document.getElementById('handCount');
+        const trackedFacesCountEl = document.getElementById('trackedFacesCount');
+        
+        // Initialize modal when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            modal = new bootstrap.Modal(document.getElementById('handRaiseModal'));
+            
+            // When modal is hidden, reset state
+            document.getElementById('handRaiseModal').addEventListener('hidden.bs.modal', function() {
+                if (currentModalTrackId && sessionId) {
+                    closeModalOnServer();
+                }
+                resetModal();
+            });
+            
+            // Add event listeners for checkboxes
+            showHandLandmarksCheck.addEventListener('change', function(e) {
+                showHandLandmarks = e.target.checked;
+                // Redraw immediately if camera is active
+                if (cameraActive && autoRecognition) {
+                    recognizeFrame();
+                }
+            });
+        });
+        
+        // Generate session ID for tracking
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // Load sections
+        async function loadSections() {
+            try {
+                const response = await fetch('/api/sections');
+                const data = await response.json();
+                availableSections = data.sections;
+                
+                sectionFilter.innerHTML = '<option value="">All Sections (Full Database Search)</option>';
+                
+                // Add existing sections
+                data.sections.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section.name;
+                    option.textContent = `${section.name} (${section.person_count} persons)`;
+                    sectionFilter.appendChild(option);
+                });
+                
+                // Load section persons count
+                updateSectionInfo();
+            } catch (error) {
+                console.error('Error loading sections:', error);
+            }
+        }
+        
+        function refreshSections() {
+            loadSections();
+        }
+        
+        // Handle section filter change
+        sectionFilter.addEventListener('change', function() {
+            selectedSection = this.value;
+            updateSectionInfo();
+            
+            // Clear current results if section changed
+            resetRecognitionResults();
+        });
+        
+        // Handle tracking toggle
+        enableTrackingCheck.addEventListener('change', function() {
+            enableTracking = this.checked;
+            trackingStatus.textContent = enableTracking ? 'Tracking ON' : 'Tracking OFF';
+            trackingStatus.className = enableTracking ? 'tracking-badge' : 'badge bg-secondary';
+            
+            if (!enableTracking) {
+                // Clear tracking if disabled
+                clearTracking();
+            }
+        });
+        
+        // Handle hand detection toggle
+        enableHandDetectionCheck.addEventListener('change', function() {
+            enableHandDetection = this.checked;
+            if (!enableHandDetection) {
+                // Close any active modal
+                if (currentModalTrackId) {
+                    modal.hide();
+                }
+            }
+        });
+        
+        // Handle debug mode toggle
+        debugModeCheck.addEventListener('change', function() {
+            debugMode = this.checked;
+        });
+        
+        // Update section info display
+        function updateSectionInfo() {
+            if (!selectedSection) {
+                selectedSectionInfo.textContent = 'All Sections';
+                selectedSectionInfo.className = 'section-badge';
+                sectionPersonCount.textContent = 'All persons';
+                searchSpeed.textContent = enableTracking ? 'Optimized search' : 'Full search';
+            } else {
+                selectedSectionInfo.textContent = selectedSection;
+                selectedSectionInfo.className = 'section-badge';
+                
+                // Get person count for selected section
+                const selectedSectionData = availableSections.find(s => s.name === selectedSection);
+                if (selectedSectionData) {
+                    sectionPersonCount.textContent = `${selectedSectionData.person_count} persons`;
+                    searchSpeed.textContent = enableTracking ? 'Optimized search' : 'Section search';
+                } else {
+                    sectionPersonCount.textContent = '0 persons';
+                    searchSpeed.textContent = 'Section empty';
+                }
+            }
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                // Stop any existing stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Get camera stream
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+                
+                // Set stream to video element
+                video.srcObject = stream;
+                currentStream = stream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        resizeCanvasToVideo();
+                        resolve();
+                    };
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Camera error:', error);
+                return false;
+            }
+        }
+        
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            
+            if (video) {
+                video.srcObject = null;
+            }
+        }
+        
+        function resizeCanvasToVideo() {
+            if (video.videoWidth && video.videoHeight) {
+                overlay.width = video.videoWidth;
+                overlay.height = video.videoHeight;
+            }
+        }
+        
+        // Toggle camera
+        toggleCameraBtn.addEventListener('click', async () => {
+            if (!cameraActive) {
+                const success = await startCamera();
+                if (success) {
+                    cameraActive = true;
+                    toggleCameraBtn.innerHTML = '<i class="fas fa-pause me-2"></i>Stop Camera';
+                    toggleCameraBtn.classList.remove('btn-primary');
+                    toggleCameraBtn.classList.add('btn-danger');
+                    noCameraDiv.style.display = 'none';
+                    
+                    // Generate new session ID if not exists
+                    if (!sessionId) {
+                        sessionId = generateSessionId();
+                        sessionIdEl.textContent = sessionId.substr(0, 12) + '...';
+                    }
+                    
+                    // Start recognition if auto is enabled
+                    if (autoRecognition) {
+                        startRecognition();
+                    }
+                } else {
+                    noCameraDiv.style.display = 'flex';
+                }
+            } else {
+                stopCamera();
+                cameraActive = false;
+                toggleCameraBtn.innerHTML = '<i class="fas fa-play me-2"></i>Start Camera';
+                toggleCameraBtn.classList.remove('btn-danger');
+                toggleCameraBtn.classList.add('btn-primary');
+                
+                // Stop recognition
+                stopRecognition();
+                
+                // Clear overlay
+                const ctx = overlay.getContext('2d');
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                
+                // Reset counters
+                resetRecognitionResults();
+            }
+        });
+        
+        // Retry camera
+        retryCameraBtn.addEventListener('click', async () => {
+            noCameraDiv.style.display = 'none';
+            const success = await startCamera();
+            if (success) {
+                cameraActive = true;
+                toggleCameraBtn.innerHTML = '<i class="fas fa-pause me-2"></i>Stop Camera';
+                toggleCameraBtn.classList.remove('btn-primary');
+                toggleCameraBtn.classList.add('btn-danger');
+                
+                if (autoRecognition) {
+                    startRecognition();
+                }
+            }
+        });
+        
+        // Auto recognition toggle
+        autoRecognitionCheck.addEventListener('change', (e) => {
+            autoRecognition = e.target.checked;
+            if (cameraActive) {
+                if (autoRecognition) {
+                    startRecognition();
+                } else {
+                    stopRecognition();
+                }
+            }
+        });
+        
+        // Draw hand landmarks on canvas
+        function drawHandLandmarks(handLandmarks) {
+            if (!handLandmarks || !handLandmarks.length || !enableHandDetection || !showHandLandmarks) return;
+            
+            const ctx = overlay.getContext('2d');
+            
+            // Save current transform
+            ctx.save();
+            
+            // Mirror the canvas to match video
+            ctx.scale(-1, 1);
+            ctx.translate(-overlay.width, 0);
+            
+            handLandmarks.forEach((landmarks, handIndex) => {
+                if (!landmarks || landmarks.length < 21) return;
+                
+                // Draw connections (palm)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 3;
+                
+                // Palm connections
+                const palmConnections = [
+                    [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+                    [0, 5], [5, 6], [6, 7], [7, 8], // Index finger
+                    [0, 9], [9, 10], [10, 11], [11, 12], // Middle finger
+                    [0, 13], [13, 14], [14, 15], [15, 16], // Ring finger
+                    [0, 17], [17, 18], [18, 19], [19, 20], // Pinky finger
+                    [5, 9], [9, 13], [13, 17] // Palm base
+                ];
+                
+                // Draw connections
+                ctx.beginPath();
+                palmConnections.forEach(([start, end]) => {
+                    if (start < landmarks.length && end < landmarks.length) {
+                        const startPoint = landmarks[start];
+                        const endPoint = landmarks[end];
+                        
+                        ctx.moveTo(startPoint[0], startPoint[1]);
+                        ctx.lineTo(endPoint[0], endPoint[1]);
+                    }
+                });
+                ctx.stroke();
+                
+                // Draw landmarks
+                ctx.fillStyle = '#9C27B0'; // Purple color for hand landmarks
+                
+                landmarks.forEach((point, index) => {
+                    if (point && point.length >= 2) {
+                        const [x, y] = point;
+                        
+                        // Different sizes for different landmark types
+                        let radius = 3;
+                        if (index === 0) radius = 6; // Wrist - larger
+                        if (index === 4 || index === 8 || index === 12 || index === 16 || index === 20) 
+                            radius = 5; // Fingertips - medium
+                        
+                        ctx.beginPath();
+                        ctx.arc(x, y, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Draw landmark numbers in debug mode
+                        if (debugMode) {
+                            ctx.fillStyle = 'white';
+                            ctx.font = '10px Arial';
+                            ctx.fillText(index.toString(), x + 5, y - 5);
+                            ctx.fillStyle = '#9C27B0'; // Reset color
+                        }
+                    }
+                });
+                
+                // Draw hand bounding box (for debugging)
+                if (debugMode && landmarks.length > 0) {
+                    const xs = landmarks.map(p => p[0]);
+                    const ys = landmarks.map(p => p[1]);
+                    const minX = Math.min(...xs);
+                    const maxX = Math.max(...xs);
+                    const minY = Math.min(...ys);
+                    const maxY = Math.max(...ys);
+                    
+                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(minX - 10, minY - 10, maxX - minX + 20, maxY - minY + 20);
+                    ctx.setLineDash([]);
+                    
+                    // Draw hand center
+                    const centerX = (minX + maxX) / 2;
+                    const centerY = (minY + maxY) / 2;
+                    
+                    ctx.fillStyle = 'yellow';
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw hand label
+                    ctx.fillStyle = 'rgba(156, 39, 176, 0.8)';
+                    ctx.fillRect(minX, minY - 25, 100, 25);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(`Hand ${handIndex + 1}`, minX + 5, minY - 10);
+                }
+            });
+            
+            // Restore transform
+            ctx.restore();
+        }
+        
+        // Show hand raise modal
+       // Update the showHandRaiseModal function to better capture and display face image
+// Show hand raise modal - FIXED VERSION
+function showHandRaiseModal(modalInfo, faceImageData = null) {
+    // Only show if we don't already have a modal active and hand detection is enabled
+    if (currentModalTrackId || !enableHandDetection) {
+        console.log('Modal already active or hand detection disabled');
+        return;
+    }
+    
+    currentModalTrackId = modalInfo.track_id;
+    
+    // Update modal content
+    document.getElementById('modalPersonName').textContent = modalInfo.person_name || 'Unknown';
+    document.getElementById('modalPersonId').textContent = modalInfo.person_id_number || 'N/A';
+    document.getElementById('modalPersonSection').textContent = modalInfo.section || 'Unknown';
+    document.getElementById('modalPersonConfidence').textContent = 
+        modalInfo.confidence ? `${Math.round(modalInfo.confidence * 100)}%` : 'N/A';
+    
+    // Update hand position text
+    const handSideEl = document.getElementById('modalHandSide');
+    if (modalInfo.hand_position === 'raised') {
+        handSideEl.textContent = '✋ Hand Raised';
+        handSideEl.className = 'raised-hand-badge';
+    } else {
+        handSideEl.textContent = 'Hand at ' + (modalInfo.hand_side || 'Unknown') + ' side';
+        handSideEl.className = 'hand-side-badge';
+    }
+    
+    // Try to capture face image from video
+    let faceImageToShow = captureFaceImageFromVideo(modalInfo);
+    
+    // If capture failed, use provided image data
+    if (!faceImageToShow && faceImageData) {
+        faceImageToShow = faceImageData;
+    }
+    
+    // Update face image in modal
+    updateFaceImageInModal(faceImageToShow, modalInfo);
+    
+    // Show modal
+    modal.show();
+    
+    // Play notification sound
+    playNotificationSound();
+}
+
+// NEW: Helper function to capture face image from video
+function captureFaceImageFromVideo(modalInfo) {
+    // Check if video is ready
+    if (!video || video.readyState !== 4 || !video.videoWidth || video.videoWidth <= 0) {
+        console.log('Video not ready for capture');
+        return null;
+    }
+    
+    // Create canvas with video dimensions
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    
+    try {
+        // Draw current video frame (NO mirror transform for face capture)
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Get face bounding box from modal info
+        let faceBbox = modalInfo.face_bbox;
+        if (!faceBbox || faceBbox.length < 4) {
+            console.log('No face bbox in modal info:', modalInfo);
+            
+            // Try to get face bbox from current recognized faces
+            const facesList = document.querySelectorAll('.face-card');
+            facesList.forEach(faceCard => {
+                const nameElement = faceCard.querySelector('h6');
+                if (nameElement && nameElement.textContent.includes(modalInfo.person_name)) {
+                    // Try to extract coordinates from tracking info
+                    const trackIdSpan = faceCard.querySelector('.track-id');
+                    if (trackIdSpan && trackIdSpan.textContent.includes('ID:')) {
+                        console.log('Found tracked face for:', modalInfo.person_name);
+                    }
+                }
+            });
+            
+            return null;
+        }
+        
+        // IMPORTANT: Convert mirrored coordinates to actual coordinates
+        // The video display is mirrored, but the canvas capture is not
+        const mirroredX1 = faceBbox[0];
+        const mirroredX2 = faceBbox[2];
+        const actualX1 = canvas.width - mirroredX2;  // Convert to actual coordinates
+        const actualX2 = canvas.width - mirroredX1;  // Convert to actual coordinates
+        const y1 = faceBbox[1];
+        const y2 = faceBbox[3];
+        
+        // Calculate face dimensions
+        const faceWidth = actualX2 - actualX1;
+        const faceHeight = y2 - y1;
+        
+        if (faceWidth <= 10 || faceHeight <= 10) {
+            console.log('Face too small to capture:', faceWidth, faceHeight);
+            return null;
+        }
+        
+        // Add padding around face
+        const padding = 40;
+        const cropX = Math.max(0, actualX1 - padding);
+        const cropY = Math.max(0, y1 - padding);
+        const cropWidth = Math.min(canvas.width - cropX, faceWidth + padding * 2);
+        const cropHeight = Math.min(canvas.height - cropY, faceHeight + padding * 2);
+        
+        // Create a new canvas for the cropped face
+        const faceCanvas = document.createElement('canvas');
+        faceCanvas.width = cropWidth;
+        faceCanvas.height = cropHeight;
+        const faceCtx = faceCanvas.getContext('2d');
+        
+        // Crop the face region
+        faceCtx.drawImage(
+            canvas,
+            cropX, cropY, cropWidth, cropHeight,  // Source region
+            0, 0, cropWidth, cropHeight           // Destination region
+        );
+        
+        // Convert to data URL
+        return faceCanvas.toDataURL('image/jpeg', 0.9);
+        
+    } catch (error) {
+        console.error('Error capturing face image:', error);
+        return null;
+    }
+}
+
+// NEW: Helper function to update face image in modal
+function updateFaceImageInModal(faceImageData, modalInfo) {
+    const faceImageDiv = document.getElementById('modalFaceImage');
+    
+    if (faceImageData) {
+        faceImageDiv.innerHTML = `
+            <div class="text-center">
+                <img src="${faceImageData}" class="img-fluid rounded shadow" 
+                     style="max-height: 200px; border: 3px solid #4facfe; object-fit: cover;" 
+                     alt="${modalInfo.person_name}'s Face"
+                     onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI4MCIgZmlsbD0iI0U5RUNFRiIvPjxwYXRoIGQ9Ik0xMDAgMTIwQzExNi41NjkgMTIwIDEzMCAxMDYuNTY5IDEzMCA5MEMxMzAgNzMuNDMxMSAxMTYuNTY5IDYwIDEwMCA2MEM4My40MzExIDYwIDcwIDczLjQzMTEgNzAgOTBDNzAgMTA2LjU2OSA4My40MzExIDEyMCAxMDAgMTIwWiIgZmlsbD0iI0IxQjJCMyIvPjxwYXRoIGQ9Ik02MCAxNjBDNzAgMTUwIDkwIDE1MCAxMDAgMTUwQzExMCAxNTAgMTMwIDE1MCAxNDAgMTYwIiBzdHJva2U9IiNCMUIyQjMiIHN0cm9rZS13aWR0aD0iMjAiLz48L3N2Zz4='">
+                <p class="text-muted mt-2">${modalInfo.person_name}'s Face</p>
+            </div>
+        `;
+    } else {
+        // Fallback to icon if no image
+        faceImageDiv.innerHTML = `
+            <div class="text-center text-muted">
+                <div class="mb-3" style="font-size: 4rem; color: #4facfe;">👤</div>
+                <p class="mb-1">${modalInfo.person_name || 'Person'}</p>
+                <small class="text-muted">Live face preview unavailable</small>
+            </div>
+        `;
+    }
+}
+  
+        // Test modal function
+        function testModal() {
+            const testModalInfo = {
+                'modal_active': true,
+                'track_id': 'test_' + Date.now(),
+                'person_name': 'Test Person',
+                'person_id_number': 'TEST001',
+                'section': 'Test Section',
+                'confidence': 0.95,
+                'timestamp': Date.now() / 1000,
+                'hand_side': 'right',
+                'hand_position': 'raised'
+            };
+            
+            showHandRaiseModal(testModalInfo, null);
+        }
+        
+        // Reset modal state
+        function resetModal() {
+            if (modalTimer) clearInterval(modalTimer);
+            currentModalTrackId = null;
+            modalCountdown = 5;
+            
+            // Reset modal content
+            document.getElementById('modalFaceImage').innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-user fa-3x"></i>
+                    <p>Face Preview</p>
+                </div>
+            `;
+        }
+        
+        // Acknowledge hand raise (close modal)
+        function acknowledgeHandRaise() {
+            if (currentModalTrackId && sessionId) {
+                closeModalOnServer();
+            }
+            modal.hide();
+        }
+        
+        // Close modal on server
+        async function closeModalOnServer() {
+            try {
+                const response = await fetch('/api/close_modal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        track_id: currentModalTrackId
+                    })
+                });
+                
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Failed to close modal on server:', result.message);
+                }
+            } catch (error) {
+                console.error('Error closing modal:', error);
+            }
+        }
+        
+        // Play notification sound
+        function playNotificationSound() {
+            try {
+                // Create a simple notification sound using Web Audio API
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (error) {
+                console.log('Audio not supported or user blocked it');
+            }
+        }
+        
+        // Manual recognition
+        async function recognizeFrame() {
+            if (!cameraActive || isProcessing) return;
+            
+            const startTime = performance.now();
+            isProcessing = true;
+            
+            try {
+                // Capture frame
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw video frame to canvas (mirror it back to normal)
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, -canvas.width, canvas.height);
+                
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Prepare request data
+                const requestData = {
+                    image: imageData,
+                    session_id: enableTracking ? sessionId : null,
+                    enable_hand_detection: enableHandDetection  // Tell server to detect hands
+                };
+                
+                if (selectedSection) {
+                    requestData.section = selectedSection;
+                }
+                
+                // Send to server with tracking
+                trackingStats.totalFrames++;
+                const response = await fetch('/api/recognize_face', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    trackingStats.recognitionCalls++;
+                    lastRecognitionTime = new Date();
+                    lastRecognitionTimeEl.textContent = lastRecognitionTime.toLocaleTimeString();
+                    
+                    // Update session ID if returned
+                    if (result.session_id && !sessionId) {
+                        sessionId = result.session_id;
+                        sessionIdEl.textContent = sessionId.substr(0, 12) + '...';
+                    }
+                    
+                    updateRecognitionResults(result.faces);
+                    drawRecognitionResults(result.faces, canvas);
+                    
+                    // Draw hand landmarks if available
+                    if (result.hand_landmarks && enableHandDetection) {
+                        drawHandLandmarks(result.hand_landmarks);
+                        trackingStats.handCount = result.hand_landmarks.length;
+                        handCountEl.textContent = result.hand_landmarks.length;
+                        detectedHandsEl.textContent = result.hand_landmarks.length;
+                    } else {
+                        handCountEl.textContent = '0';
+                        detectedHandsEl.textContent = '0';
+                    }
+                    
+                    // Update optimization statistics
+                    if (result.optimization_stats) {
+                        const opt = result.optimization_stats;
+                        trackingStats.optimizationRate = opt.optimization_rate || 0;
+                        
+                        // Update UI with optimization info
+                        const optRate = Math.round(opt.optimization_rate);
+                        const savedCalls = opt.total_faces - opt.recognized_count;
+                        
+                        if (opt.total_faces > 0) {
+                            searchSpeed.innerHTML = `
+                                <i class="fas fa-bolt me-1"></i>
+                                Optimization: ${optRate}% (Saved ${savedCalls} recog calls)
+                            `;
+                            
+                            // Update tracking stats
+                            recognitionCountEl.textContent = opt.recognized_count;
+                            optimizationRateEl.textContent = `${optRate}%`;
+                            
+                            // Color code based on optimization rate
+                            if (optRate > 80) {
+                                optimizationRateEl.className = 'optimization-badge';
+                            } else if (optRate > 50) {
+                                optimizationRateEl.className = 'badge bg-warning';
+                            } else {
+                                optimizationRateEl.className = 'badge bg-danger';
+                            }
+                        }
+                    }
+                    
+                    // Update tracking stats
+                    updateTrackingStats(result.faces);
+                    
+                    // Check for hand raise modal
+                    if (result.faces && result.faces.length > 0) {
+                        // Check each face for modal_info
+                        for (let face of result.faces) {
+                            if (face.modal_info && face.modal_info.modal_active) {
+                                const modalInfo = face.modal_info;
+                                
+                                // Only show modal if it's a new one and hand detection is enabled
+                                if (modalInfo.track_id !== currentModalTrackId && enableHandDetection) {
+                                    console.log('Hand raise detected for track:', modalInfo.track_id);
+                                    
+                                    // Extract face image from the frame for the modal
+                                    let faceImageData = null;
+                                    const faceWithModal = result.faces.find(f => f.track_id === modalInfo.track_id);
+                                    if (faceWithModal) {
+                                        // Crop face from canvas
+                                        const faceCanvas = document.createElement('canvas');
+                                        const [x1, y1, x2, y2] = faceWithModal.bbox;
+                                        const faceWidth = x2 - x1;
+                                        const faceHeight = y2 - y1;
+                                        
+                                        // Add padding
+                                        const padding = 20;
+                                        const cropX = Math.max(0, x1 - padding);
+                                        const cropY = Math.max(0, y1 - padding);
+                                        const cropWidth = Math.min(canvas.width - cropX, faceWidth + padding * 2);
+                                        const cropHeight = Math.min(canvas.height - cropY, faceHeight + padding * 2);
+                                        
+                                        faceCanvas.width = cropWidth;
+                                        faceCanvas.height = cropHeight;
+                                        const faceCtx = faceCanvas.getContext('2d');
+                                        
+                                        // Draw cropped face (mirror back to correct orientation)
+                                        faceCtx.scale(-1, 1);
+                                        faceCtx.drawImage(canvas, -cropX - cropWidth, cropY, cropWidth, cropHeight);
+                                        
+                                        faceImageData = faceCanvas.toDataURL('image/jpeg', 0.9);
+                                    }
+                                    
+                                    showHandRaiseModal(modalInfo, faceImageData);
+                                    break; // Only show first modal
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                const endTime = performance.now();
+                processingTimeEl.textContent = `${Math.round(endTime - startTime)}ms`;
+                
+            } catch (error) {
+                console.error('Recognition error:', error);
+            } finally {
+                isProcessing = false;
+            }
+        }
+        
+        // Update recognition results
+        function updateRecognitionResults(faces) {
+            detectedFacesEl.textContent = faces.length;
+            
+            const recognized = faces.filter(face => face.name !== 'Unknown').length;
+            recognizedFacesEl.textContent = recognized;
+            
+            // Count tracked faces
+            const tracked = faces.filter(face => face.tracked).length;
+            trackedFacesCountEl.textContent = tracked;
+            
+            // Update faces list
+            if (faces.length > 0) {
+                facesList.innerHTML = faces.map(face => {
+                    const confidencePercent = Math.round(face.confidence * 100);
+                    const isUnknown = face.name === 'Unknown';
+                    const isTracked = face.tracked;
+                    const trackId = face.track_id;
+                    const hasModal = face.modal_info && face.modal_info.modal_active;
+                    
+                    const sectionInfo = face.section && face.section !== 'Unknown' ? 
+                        `<span class="badge bg-secondary ms-2">${face.section}</span>` : '';
+                    
+                    const trackInfo = isTracked && trackId ? 
+                        `<span class="track-id ms-2">ID: ${trackId}</span>` : '';
+                    
+                    const optimizationBadge = isTracked ? 
+                        `<span class="optimization-badge ms-2">Tracked</span>` : '';
+                    
+                    const handRaiseBadge = hasModal ? 
+                        `<span class="raised-hand-badge ms-2">✋ Hand Raised</span>` : '';
+                    
+                    return `
+                        <div class="face-card ${isUnknown ? 'unknown-face' : (isTracked ? 'tracking-face' : '')}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">
+                                        ${face.name} 
+                                        ${face.id_number && face.id_number !== 'N/A' ? `<span class="badge bg-info ms-2">ID: ${face.id_number}</span>` : ''}
+                                        ${sectionInfo}
+                                        ${trackInfo}
+                                        ${optimizationBadge}
+                                        ${handRaiseBadge}
+                                    </h6>
+                                    <p class="mb-0 text-muted small">
+                                        <i class="fas fa-bullseye me-1"></i>Confidence: ${confidencePercent}%<br>
+                                        <i class="fas fa-eye me-1"></i>Detection: ${Math.round(face.det_score * 100)}%
+                                    </p>
+                                </div>
+                                <span class="recognition-badge ${isUnknown ? 'bg-danger' : (isTracked ? 'bg-primary' : 'bg-success')} text-white">
+                                    <i class="fas ${isUnknown ? 'fa-question' : (isTracked ? 'fa-id-card' : 'fa-check')} me-1"></i>
+                                    ${isUnknown ? 'Unknown' : (isTracked ? 'Tracked' : 'Recognized')}
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    Position: X:${Math.round(face.bbox[0])}, Y:${Math.round(face.bbox[1])}
+                                    ${face.needs_recognition ? '<span class="text-warning ms-2"><i class="fas fa-exclamation-triangle"></i> Needs recognition</span>' : ''}
+                                </small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                facesList.innerHTML = `
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-user-slash fa-2x mb-3"></i>
+                        <p>No faces detected.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Draw results on canvas
+        function drawRecognitionResults(faces, originalCanvas = null) {
+            const ctx = overlay.getContext('2d');
+            
+            // Clear previous drawings
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+            
+            // Reset transform
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            
+            // Mirror the canvas to match video
+            ctx.scale(-1, 1);
+            ctx.translate(-overlay.width, 0);
+            
+            // Draw debug mode indicator
+            if (debugMode) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.fillRect(10, 10, 150, 40);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('DEBUG MODE', 20, 35);
+            }
+            
+            // Draw tracking info
+            ctx.font = 'bold 18px Arial';
+            const trackingText = enableTracking ? 'Face Tracking: ACTIVE' : 'Face Tracking: INACTIVE';
+            const trackingTextWidth = ctx.measureText(trackingText).width;
+            
+            ctx.fillStyle = enableTracking ? 'rgba(33, 150, 243, 0.8)' : 'rgba(158, 158, 158, 0.8)';
+            ctx.fillRect(overlay.width - trackingTextWidth - 30, 10, trackingTextWidth + 20, 40);
+            
+            ctx.fillStyle = 'white';
+            ctx.fillText(trackingText, overlay.width - trackingTextWidth - 20, 35);
+            
+            // Draw hand detection status
+            if (enableHandDetection) {
+                ctx.font = 'bold 16px Arial';
+                const handText = 'Hand Detection: ACTIVE';
+                const handTextWidth = ctx.measureText(handText).width;
+                
+                ctx.fillStyle = 'rgba(156, 39, 176, 0.8)';
+                ctx.fillRect(overlay.width - handTextWidth - 30, 60, handTextWidth + 20, 35);
+                
+                ctx.fillStyle = 'white';
+                ctx.fillText(handText, overlay.width - handTextWidth - 20, 82);
+            }
+            
+            // Draw section info
+            ctx.font = 'bold 16px Arial';
+            const sectionText = selectedSection ? `Section: ${selectedSection}` : 'All Sections';
+            const sectionTextWidth = ctx.measureText(sectionText).width;
+            
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.8)';
+            ctx.fillRect(10, 60, sectionTextWidth + 20, 35);
+            
+            ctx.fillStyle = 'white';
+            ctx.fillText(sectionText, 20, 82);
+            
+            // Draw hand count if available
+            if (trackingStats.handCount > 0) {
+                ctx.font = 'bold 16px Arial';
+                const handCountText = `Hands: ${trackingStats.handCount}`;
+                const handCountWidth = ctx.measureText(handCountText).width;
+                
+                ctx.fillStyle = 'rgba(156, 39, 176, 0.8)';
+                ctx.fillRect(10, 105, handCountWidth + 20, 35);
+                
+                ctx.fillStyle = 'white';
+                ctx.fillText(handCountText, 20, 127);
+            }
+            
+            faces.forEach(face => {
+                const [x1, y1, x2, y2] = face.bbox;
+                const isUnknown = face.name === 'Unknown';
+                const isTracked = face.tracked;
+                const trackId = face.track_id;
+                const hasModal = face.modal_info && face.modal_info.modal_active;
+                
+                // Choose color based on tracking status
+                let boxColor, labelColor;
+                if (hasModal) {
+                    boxColor = '#FF5722';  // Orange for hand raised
+                    labelColor = 'rgba(255, 87, 34, 0.8)';
+                } else if (isTracked) {
+                    boxColor = '#2196F3';  // Blue for tracked
+                    labelColor = 'rgba(33, 150, 243, 0.8)';
+                } else if (isUnknown) {
+                    boxColor = '#ff4444';  // Red for unknown
+                    labelColor = 'rgba(255, 68, 68, 0.8)';
+                } else {
+                    boxColor = '#44ff44';  // Green for recognized
+                    labelColor = 'rgba(68, 255, 68, 0.8)';
+                }
+                
+                // Draw bounding box
+                ctx.strokeStyle = boxColor;
+                ctx.lineWidth = hasModal ? 5 : (isTracked ? 4 : 3);
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                
+                // Draw label
+                let label = `${face.name} (${Math.round(face.confidence * 100)}%)`;
+                if (showTrackIDsCheck.checked && trackId) {
+                    label += ` [ID:${trackId}]`;
+                }
+                
+                ctx.font = 'bold 14px Arial';
+                const textWidth = ctx.measureText(label).width;
+                
+                ctx.fillStyle = labelColor;
+                ctx.fillRect(x1, y1 - 35, textWidth + 15, 35);
+                
+                // Draw name
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(face.name, x1 + 8, y1 - 20);
+                
+                // Draw confidence and tracking info
+                ctx.font = '10px Arial';
+                ctx.fillText(`Confidence: ${Math.round(face.confidence * 100)}%`, x1 + 8, y1 - 5);
+                
+                if (face.section && face.section !== 'Unknown') {
+                    ctx.fillText(`Section: ${face.section}`, x1 + 8, y1 + 5);
+                }
+                
+                if (isTracked) {
+                    ctx.fillText(`Tracked`, x1 + 8, y1 + 15);
+                }
+                
+                if (hasModal) {
+                    ctx.fillText(`✋ Hand Raised`, x1 + 8, y1 + 25);
+                }
+                
+                // Draw landmarks if enabled
+                if (showLandmarksCheck.checked && face.landmarks) {
+                    ctx.fillStyle = '#ffaa00';
+                    face.landmarks.forEach(point => {
+                        ctx.beginPath();
+                        ctx.arc(point[0], point[1], 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
+                
+                // Draw track ID near the box if enabled
+                if (showTrackIDsCheck.checked && trackId) {
+                    ctx.font = '12px monospace';
+                    const idText = `ID:${trackId}`;
+                    const idWidth = ctx.measureText(idText).width;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(x2 - idWidth - 10, y1 + 10, idWidth + 10, 20);
+                    
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillText(idText, x2 - idWidth - 5, y1 + 25);
+                }
+                
+                // Draw hand raise detection zone in debug mode
+                if (debugMode && enableHandDetection) {
+                    const faceWidth = x2 - x1;
+                    const faceHeight = y2 - y1;
+                    
+                    // Draw hand raise detection zone (above face)
+                    ctx.strokeStyle = 'rgba(255, 193, 7, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    
+                    // Detection area above face
+                    const detectionTop = Math.max(0, y1 - faceHeight * 2.5);
+                    const detectionBottom = y1 + faceHeight * 0.3;
+                    const detectionLeft = Math.max(0, x1 - faceWidth * 1.0);
+                    const detectionRight = Math.min(overlay.width, x2 + faceWidth * 1.0);
+                    
+                    ctx.strokeRect(detectionLeft, detectionTop, detectionRight - detectionLeft, detectionBottom - detectionTop);
+                    
+                    // Draw zone label
+                    ctx.fillStyle = 'rgba(255, 193, 7, 0.7)';
+                    ctx.font = '10px Arial';
+                    ctx.fillText('Hand Raise Zone', detectionLeft, detectionTop - 5);
+                    
+                    ctx.setLineDash([]); // Reset dash
+                }
+            });
+            
+            // Reset transform for next frame
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        
+        // Update tracking statistics
+        function updateTrackingStats(faces) {
+            const trackedFaces = faces.filter(face => face.tracked);
+            const recognizedFaces = faces.filter(face => face.recognized);
+            
+            trackingStats.activeTracks = trackedFaces.length;
+            trackingStats.trackedFaces = trackedFaces.length;
+            trackingStats.recognizedFaces = recognizedFaces.length;
+            
+            // Update UI
+            activeTracksEl.textContent = trackingStats.activeTracks;
+            recognitionCountEl.textContent = trackingStats.recognitionCalls;
+            
+            // Count tracked but not yet recognized faces
+            const trackedButUnknown = faces.filter(face => face.tracked && !face.recognized);
+            const trackIds = new Set(faces.map(face => face.track_id).filter(id => id));
+            
+            if (trackIds.size > 0) {
+                optimizationRateEl.textContent = `${Math.round((trackingStats.activeTracks / trackIds.size) * 100)}%`;
+            }
+            
+            // Show track optimization info
+            if (trackedFaces.length > 0) {
+                const optimizationText = `${trackedFaces.length} tracked, ${recognizedFaces.length} recognized`;
+                searchSpeed.textContent = optimizationText;
+            }
+        }
+        
+        // Start/stop recognition
+        function startRecognition() {
+            if (!recognitionInterval) {
+                recognitionInterval = setInterval(recognizeFrame, 2000); // Every 2 seconds
+                // Also recognize immediately
+                recognizeFrame();
+            }
+        }
+        
+        function stopRecognition() {
+            if (recognitionInterval) {
+                clearInterval(recognitionInterval);
+                recognitionInterval = null;
+            }
+        }
+        
+        // Clear tracking
+        async function clearTracking() {
+            if (!sessionId) return;
+            
+            try {
+                const response = await fetch('/api/clear_tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Reset tracking stats
+                    trackingStats = {
+                        totalFrames: 0,
+                        recognitionCalls: 0,
+                        trackedFaces: 0,
+                        activeTracks: 0,
+                        handCount: 0
+                    };
+                    
+                    // Generate new session ID
+                    sessionId = generateSessionId();
+                    sessionIdEl.textContent = sessionId.substr(0, 12) + '...';
+                    
+                    // Update UI
+                    updateTrackingStats([]);
+                    handCountEl.textContent = '0';
+                    detectedHandsEl.textContent = '0';
+                    alert('Tracking cleared successfully!');
+                }
+            } catch (error) {
+                console.error('Error clearing tracking:', error);
+            }
+        }
+        
+        // Reset recognition results
+        function resetRecognitionResults() {
+            detectedFacesEl.textContent = '0';
+            recognizedFacesEl.textContent = '0';
+            detectedHandsEl.textContent = '0';
+            trackedFacesCountEl.textContent = '0';
+            facesList.innerHTML = `
+                <div class="text-center text-muted p-4">
+                    <i class="fas fa-filter fa-2x mb-3"></i>
+                    <p>Section changed or tracking cleared.</p>
+                    <p>Start recognition again.</p>
+                </div>
+            `;
+            
+            // Clear canvas
+            const ctx = overlay.getContext('2d');
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+        }
+        
+        // Refresh database info
+        async function refreshDatabase() {
+            try {
+                const response = await fetch('/api/database_stats');
+                const data = await response.json();
+                
+                dbSections.textContent = data.total_sections;
+                dbPersons.textContent = data.total_persons;
+                
+                // Update section filter with fresh data
+                loadSections();
+            } catch (error) {
+                console.error('Error refreshing database:', error);
+            }
+        }
+        
+        // Copy session ID to clipboard
+        function copySessionId() {
+            if (!sessionId) {
+                alert('No active session ID to copy');
+                return;
+            }
+            
+            navigator.clipboard.writeText(sessionId).then(() => {
+                alert('Session ID copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy session ID:', err);
+            });
+        }
+        
+        // Handle video resize
+        video.addEventListener('resize', resizeCanvasToVideo);
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Generate initial session ID
+            sessionId = generateSessionId();
+            sessionIdEl.textContent = sessionId.substr(0, 12) + '...';
+            
+            loadSections();
+            refreshDatabase();
+            
+            // Try to auto-start camera if user previously allowed
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(() => {
+                        console.log('Camera access granted');
+                    })
+                    .catch(() => {
+                        console.log('Camera access not granted');
+                    });
+            }
+        });
+        
+        // Camera state
+        let cameraActive = false;
+        let currentStream = null;
+    </script>
+</body>
+</html>

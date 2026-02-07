@@ -1,0 +1,72 @@
+<section class="mb-8">
+  <h2 class="text-2xl font-bold text-gray-900 mb-6">Quick Stats</h2>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Attendance -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+      <div class="flex justify-between items-start">
+        <p class="text-sm font-medium text-gray-500">Attendance</p>
+        <span class="material-symbols-outlined text-purple-500">checklist</span>
+      </div>
+      <div class="mt-2">
+        <p id="attendanceCount" class="text-3xl font-bold text-gray-900">-- / --</p>
+        <div class="flex items-center text-sm mt-2">
+          <div class="w-full bg-gray-200 rounded-full h-1.5">
+            <div id="attendanceBar" class="bg-blue-500 h-1.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <span id="attendancePercent" class="ml-3 font-semibold text-gray-700">--%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Students -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+      <div class="flex justify-between items-start">
+        <p class="text-sm font-medium text-gray-500">Active Students</p>
+        <span class="material-symbols-outlined text-green-500">group</span>
+      </div>
+      <div class="mt-2">
+        <p id="activeStudents" class="text-4xl font-bold text-gray-900">--</p>
+        <div class="flex items-center text-sm mt-1">
+          <span id="activeStudentsChangeIcon" class="material-symbols-outlined text-green-500 text-base">arrow_upward</span>
+          <span id="activeStudentsChange" class="ml-1 text-green-600 font-medium">--%</span>
+          <span class="ml-2 text-gray-500">from last session</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Average Engagement -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+      <div class="flex justify-between items-start">
+        <p class="text-sm font-medium text-gray-500">Average Engagement</p>
+        <span class="material-symbols-outlined text-yellow-500">trending_up</span>
+      </div>
+      <div class="mt-2">
+        <p class="text-4xl font-bold text-gray-900">
+          <span id="averageEngagement">--</span><span class="text-2xl text-gray-500">%</span>
+        </p>
+        <div class="flex items-center text-sm mt-1">
+          <span id="averageEngagementChangeIcon" class="material-symbols-outlined text-red-500 text-base">arrow_downward</span>
+          <span id="averageEngagementChange" class="ml-1 text-red-600 font-medium">--%</span>
+          <span class="ml-2 text-gray-500">from last session</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Needs Assistance -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+      <div class="flex justify-between items-start">
+        <p class="text-sm font-medium text-gray-500">Needs Assistance</p>
+        <span class="material-symbols-outlined text-blue-500">help_outline</span>
+      </div>
+      <div class="mt-2">
+        <p id="needsAssistance" class="text-4xl font-bold text-gray-900">--</p>
+        <div class="flex items-center text-sm mt-1">
+          <span class="material-symbols-outlined text-green-500 text-base">arrow_upward</span>
+          <span id="needsAssistanceChange" class="ml-1 text-green-600 font-medium">--</span>
+          <span class="ml-2 text-gray-500">newly flagged</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

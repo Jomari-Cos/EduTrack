@@ -1,0 +1,56 @@
+<section class="mt-6 rounded-xl p-6 overflow-x-auto">
+  <h2 class="text-2xl font-bold text-gray-900 mb-4">Student Performance Overview</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {% for student in raw_student %}
+    <div class="student-card bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col items-center p-5 text-center transition-transform transform hover:scale-105"
+         data-attendance="{{ student.attendance or 0 }}"
+         data-score="{{ student.average_score or 0 }}"
+         data-grade="{{ student.grade_level }}"
+         data-section="{{ student.section or '' }}"
+         data-student-id="{{ student.student_id }}"
+         data-image="{% if student.image %}{{ url_for('static', filename='uploads/' ~ student.image) }}{% else %}{% endif %}"
+         data-subject_scores='{{ student.subject_scores | tojson | safe }}'
+         data-absent_count="{{ student.absent_count or 0 }}"
+         data-late_count="{{ student.late_count or 0 }}"
+         data-present_count="{{ student.present_count or 0 }}">
+      
+      {% if student.image %}
+      <img src="{{ url_for('static', filename='uploads/' ~ student.image) }}" 
+           alt="Student Photo" class="w-24 h-24 rounded-full object-cover mb-4 ring-2 ring-slate-200">
+      {% else %}
+      <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-2xl mb-4 ring-2 ring-slate-200">
+        {{ student.first_name[0] }}
+      </div>
+      {% endif %}
+
+      <h4 class="text-lg font-semibold text-slate-800">
+        {{ student.first_name }}
+        {% if student.middle_initial %} {{ student.middle_initial }}.{% endif %}
+        {{ student.last_name }}
+      </h4>
+      <p class="text-sm text-slate-500 mt-1">ID: {{ student.student_id or "N/A" }}</p>
+      <p class="text-sm text-slate-500">Grade {{ student.grade_level }} - Section {{ student.section or "N/A" }}</p>
+
+      <div class="flex gap-2 mt-3">
+        <span class="px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+          Attendance: {{ student.attendance or "N/A" }}%
+        </span>
+        <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">
+          Avg Score: {{ student.average_score or "N/A" }}%
+        </span>
+      </div>
+
+      <div class="mt-4 flex gap-3">
+        <button class="view-btn flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 shadow-sm" title="View">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    {% else %}
+    <p class="col-span-full text-center text-gray-500">⚠ No students found.</p>
+    {% endfor %}
+  </div>
+</section>

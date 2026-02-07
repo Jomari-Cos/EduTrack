@@ -1,0 +1,18 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<section id="dashboard" class="panel p-6">
+  <header class="mb-8">
+    <h2 class="text-2xl font-bold">📊 Dashboard</h2>
+    <p class="mt-2 text-gray-600">Overview of classroom activity.</p>
+  </header>
+
+  {% include 'dashboard/components/teacher_profile.html' %}
+  {% include 'dashboard/components/quick_stats.html' %}
+  
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    {% include 'dashboard/components/student_attendance.html' %}
+    {% include 'dashboard/components/top_students.html' %}
+  </div>
+</section>
+{% endblock %}

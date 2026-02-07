@@ -1,0 +1,48 @@
+<section class="mb-8">
+  <div class="teacher-card flex flex-col md:flex-row items-center gap-4 bg-white rounded-2xl shadow-sm p-6"
+       data-teacher='{
+         "name": "{{ teacher.name }}",
+         "email": "{{ teacher.email }}",
+         "gender": "{{ teacher.gender or "" }}",
+         "phone": "{{ teacher.contact_info or "" }}",
+         "status": "Active",
+         "photo": "{{ url_for('static', filename=teacher.photo) if teacher.photo else "" }}",
+         "classes": {{ teacher.get_classes() | tojson | safe }},
+         "classesCount": {{ teacher.get_classes() | length }},
+         "age": {{ teacher.age or "null" }}
+       }'>
+    
+    <div class="teacher-profile flex items-center gap-4 cursor-pointer hover:shadow-lg transition-shadow duration-200">
+      {% if teacher.photo %}
+      <img src="{{ url_for('static', filename=teacher.photo) }}" 
+           alt="{{ teacher.name }}'s photo" 
+           class="w-16 h-16 rounded-full object-cover hover:scale-110 transition-transform duration-300">
+      {% else %}
+      <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl hover:scale-110 transition-transform duration-300">
+        {{ teacher.name[0] }}
+      </div>
+      {% endif %}
+
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-300">
+          👩‍🏫 {{ teacher.name }}
+        </h3>
+        <p class="text-sm text-gray-600">{{ teacher.email }}</p>
+      </div>
+    </div>
+
+    <div class="ml-auto text-sm text-gray-700">
+      <p class="font-medium">Classes:</p>
+      <select name="assigned_class" id="assignedClassSelect" class="w-full rounded-lg border-gray-300 p-2">
+        <option value="">Select a class</option>
+        {% for cls in teacher.get_classes() %}
+        <option value="{{ cls.name or cls.subject }}">
+          {{ cls.grade if cls.grade else "" }}
+          {% if cls.section %} - {{ cls.section }}{% endif %}
+          | {{ cls.subject if cls.subject else cls.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</section>

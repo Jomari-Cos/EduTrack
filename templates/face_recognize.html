@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Recognition - Face Recognition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+     <link rel="stylesheet" href="{{ url_for('static', filename='Css/face_recognize.css') }}">
+     <!-- Add this to your HTML head for confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <!-- Section Filter Card -->
+                <div class="section-filter-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5><i class="fas fa-filter me-2"></i>Section Filter & Tracking</h5>
+                            <h4>
+                                <span id="currentGrade">GRADE</span>
+                                <span class="mx-2">-</span>
+                                <span id="currentSection">SECTION</span>
+                                <span class="mx-2">-</span>
+                                <span id="currentSubject">SUBJECT</span>
+                            </h4>
+
+
+                            <p class="text-muted mb-2">Select a section and enable face tracking for optimized performance</p>
+                            <div class="input-group mb-2">
+                                <select class="form-select" id="sectionFilter">
+                                    <option value="">All Sections (Full Database Search)</option>
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                                <button class="btn btn-outline-primary" onclick="refreshSections()">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enableTracking" checked>
+                                <label class="form-check-label" for="enableTracking">
+                                    <i class="fas fa-id-card me-2"></i>Enable Face Tracking
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enableHandDetection" checked>
+                                <label class="form-check-label" for="enableHandDetection">
+                                    <i class="fas fa-hand-paper me-2"></i>Enable Hand Raise Detection
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="debugMode">
+                                <label class="form-check-label" for="debugMode">
+                                    <i class="fas fa-bug me-2"></i>Debug Mode (Show detection zones)
+                                </label>
+                            </div>
+                            <!-- Add this where you have other toggles like auto recognition -->
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="attendanceToggle">
+                            <label class="form-check-label" for="attendanceToggle">
+                                <i class="fas fa-user-check me-1"></i> Auto Attendance
+                            </label>
+                            <span id="attendanceStatus" class="badge bg-secondary ms-2">OFF</span>
+                        </div>
+                        <!-- Add this near other buttons like "Refresh Database" -->
+                        <button class="btn btn-outline-success mb-3" onclick="showAttendanceSummary()">
+                            <i class="fas fa-clipboard-list me-2"></i>View Attendance
+                        </button>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="section-badge mb-2" id="selectedSectionInfo">
+                                    All Sections
+                                </div>
+                                <div class="mb-2">
+                                    <span id="sectionPersonCount" class="person-badge">All persons</span>
+                                    <span id="trackingStatus" class="tracking-badge">Tracking ON</span>
+                                </div>
+                                <div class="search-speed">
+                                    <i class="fas fa-bolt me-1"></i>
+                                    <span id="searchSpeed">Optimized search</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tracking Stats -->
+                    <div class="tracking-stats mt-3">
+                        <div class="row text-center">
+                            <div class="col-3">
+                                <h5 id="activeTracks">0</h5>
+                                <small class="text-muted">Active Tracks</small>
+                            </div>
+                            <div class="col-3">
+                                <h5 id="recognitionCount">0</h5>
+                                <small class="text-muted">Recognition Calls</small>
+                            </div>
+                            <div class="col-3">
+                                <h5 id="optimizationRate">100%</h5>
+                                <small class="text-muted">Optimization</small>
+                            </div>
+                            <div class="col-3">
+                                <h5 id="handCount">0</h5>
+                                <small class="text-muted">Hands Detected</small>
+                            </div>
+                        </div>
+                        <div class="text-center mt-2">
+                            <button onclick="clearTracking()" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-redo me-2"></i>Clear Tracking
+                            </button>
+                            <button onclick="testModal()" class="btn btn-sm btn-outline-success ms-2">
+                                <i class="fas fa-hand-paper me-2"></i>Test Modal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Video Container -->
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">
+                            <i class="fas fa-search me-2"></i>Live Face Recognition with Hand Detection
+                        </h1>
+                        <div>
+                            <a href="/dashboard" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-home me-2"></i>Go back
+                            </a>
+                            <button id="toggleCamera" class="btn btn-primary">
+                                <i class="fas fa-play me-2"></i>Start Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <video id="video" width="100%" height="auto" autoplay></video>
+                        <canvas id="overlay"></canvas>
+                        <div id="noCamera" class="text-center text-white p-5" style="display: none;">
+                            <h3><i class="fas fa-video-slash me-2"></i>Camera Access Required</h3>
+                            <p>Please allow camera access to use face recognition.</p>
+                            <button id="retryCamera" class="btn btn-light mt-3">
+                                <i class="fas fa-redo me-2"></i>Retry Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoRecognition" checked>
+                                <label class="form-check-label" for="autoRecognition">
+                                    <i class="fas fa-robot me-2"></i>Enable auto-recognition (process every 2 seconds)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showTrackIDs" checked>
+                                <label class="form-check-label" for="showTrackIDs">
+                                    <i class="fas fa-hashtag me-2"></i>Show Track IDs
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showLandmarks" checked>
+                                <label class="form-check-label" for="showLandmarks">
+                                    <i class="fas fa-dot-circle me-2"></i>Show Face Landmarks
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showHandLandmarks" checked>
+                                <label class="form-check-label" for="showHandLandmarks">
+                                    <i class="fas fa-hand-paper me-2"></i>Show Hand Landmarks
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card p-4 h-100">
+                    <h4 class="mb-4">
+                        <i class="fas fa-users me-2"></i>Recognition Results
+                    </h4>
+                    
+                    <div class="stats-card">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h3 id="detectedFaces">0</h3>
+                                <p class="text-muted">Faces</p>
+                            </div>
+                            <div class="col-4">
+                                <h3 id="recognizedFaces">0</h3>
+                                <p class="text-muted">Recognized</p>
+                            </div>
+                            <div class="col-4">
+                                <h3 id="detectedHands">0</h3>
+                                <p class="text-muted">Hands</p>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <div class="search-speed">
+                                <i class="fas fa-clock me-1"></i>
+                                Last recognition: <span id="lastRecognitionTime">-</span>
+                            </div>
+                            <div class="search-speed mt-1">
+                                <i class="fas fa-microchip me-1"></i>
+                                Processing: <span id="processingTime">0ms</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mt-4">
+                        <i class="fas fa-user-friends me-2"></i>Tracked Faces:
+                        <span class="badge bg-secondary" id="trackedFacesCount">0</span>
+                    </h5>
+                    <div id="facesList" class="mt-3" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-center text-muted p-4">
+                            <i class="fas fa-user-slash fa-2x mb-3"></i>
+                            <p>No faces detected yet.</p>
+                            <p>Start the camera to begin recognition.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-top">
+                        <h5>
+                            <i class="fas fa-database me-2"></i>Database Info
+                        </h5>
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Sections:</strong></p>
+                                <p class="mb-1"><strong>Total Persons:</strong></p>
+                                <p class="mb-0"><strong>Session ID:</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="mb-1" id="dbSections">0</p>
+                                <p class="mb-1" id="dbPersons">0</p>
+                                <p class="mb-0 text-truncate" id="sessionId" style="max-width: 150px;">-</p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button onclick="refreshDatabase()" class="btn btn-sm btn-outline-primary w-100 mb-2">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh Database
+                            </button>
+                            <button onclick="copySessionId()" class="btn btn-sm btn-outline-secondary w-100">
+                                <i class="fas fa-copy me-2"></i>Copy Session ID
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hand Raise Modal -->
+    <div id="handRaiseModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-hand-paper me-2"></i>Hand Raised Detected!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <div class="hand-raise-icon mb-3">
+                            <i class="fas fa-hand-paper fa-4x text-primary"></i>
+                        </div>
+                        <h4>Student Raised Hand</h4>
+                        <p class="text-muted">This person raised their hand in their personal zone</p>
+                    </div>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <div id="modalFaceImage" class="mb-3">
+                                <div class="text-center">
+                                    <div class="mb-3" style="font-size: 4rem;">👤</div>
+                                    <p>Face Preview</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="student-info-card p-3 border rounded">
+                                <h5 class="mb-3">Student Information</h5>
+                                <div class="row mb-2">
+                                    <div class="col-5"><strong>Name:</strong></div>
+                                    <div class="col-7 text-end" id="modalPersonName">-</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-5"><strong>ID Number:</strong></div>
+                                    <div class="col-7 text-end" id="modalPersonId">-</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-5"><strong>Section:</strong></div>
+                                    <div class="col-7 text-end" id="modalPersonSection">-</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-5"><strong>Confidence:</strong></div>
+                                    <div class="col-7 text-end" id="modalPersonConfidence">-</div>
+                                </div>
+                                <div class="alert alert-warning p-2">
+                                    <i class="fas fa-hand-paper me-2"></i>
+                                    <span id="modalHandSide">Hand raised in personal zone</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label for="modalPointsInput" class="form-label">
+                            <i class="fas fa-star me-2"></i>Points to Award
+                            <span class="badge bg-info ms-2" id="voiceStatusBadge">
+                                <i class="fas fa-microphone"></i> Ready
+                            </span>
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-success" 
+                                onclick="toggleVoiceRecognition()" id="voiceToggleBtn">
+                            <i class="fas fa-microphone me-1"></i> Toggle Voice
+                        </button>
+                    </div>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="modalPointsInput" 
+                               min="0" max="100" value="5" placeholder="Enter points">
+                        <button class="btn btn-outline-secondary" type="button" 
+                                onclick="document.getElementById('modalPointsInput').value = ''">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Use voice commands: "five points", "increase by ten", "save points", etc.
+                            <a href="#" class="ms-2" onclick="showVoiceCommandHelpModal()">See all commands</a>
+                        </small>
+                    </div>
+                </div>
+                     <!-- Add points input here -->
+    <div class="row mb-2">
+        <div class="col-5"><strong>Add Points:</strong></div>
+        <div class="col-7">
+            <div class="input-group input-group-sm">
+                <input type="number" 
+                       class="form-control form-control-sm" 
+                       id="modalPointsInput" 
+                       value="5" 
+                       min="0" 
+                       max="50">
+                <span class="input-group-text">pts</span>
+            </div>
+        </div>
+    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Choosee Another
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="acknowledgeHandRaise()">
+                        <i class="fas fa-check me-2"></i>Acknowledge
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard/face_recognize.js') }}"></script>
+</body>
+</html>
