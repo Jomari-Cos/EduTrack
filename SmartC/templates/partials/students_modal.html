@@ -1,0 +1,65 @@
+<!-- Students Modal -->
+<div
+  id="studentsModal"
+  class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50"
+>
+  <div class="bg-white rounded-xl w-full max-w-4xl mx-4 relative">
+
+    <button
+      id="closeStudentsModal"
+      class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl"
+    >
+      &times;
+    </button>
+
+    <div class="flex-1 bg-blue-50 rounded-xl p-6 overflow-y-auto max-h-[80vh]">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">
+        Students Who Raised Their Hands ✋
+      </h2>
+
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-1 lg:grid-cols-2">
+        {% for student in students %}
+        <div
+          class="student-card bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-200"
+          data-grade="{{ student.grade_level }}"
+          data-section="{{ student.section }}"
+          data-student-id="{{ student.student_id }}"
+          data-student-name="{{ student.first_name }}{% if student.middle_initial %} {{ student.middle_initial }}.{% endif %} {{ student.last_name }}"
+          data-image="{% if student.image %}{{ url_for('static', filename='uploads/' ~ student.image) }}{% endif %}"
+          data-present="{{ 'true' if student.is_present else 'false' }}"
+        >
+          <div class="flex items-start gap-3 mb-3">
+            {% if student.image %}
+            <img
+              src="{{ url_for('static', filename='uploads/' ~ student.image) }}"
+              class="w-10 h-10 rounded-full object-cover"
+            >
+            {% endif %}
+
+            <div class="flex-1">
+              <h3 class="text-sm font-semibold">
+                {{ student.first_name }} {{ student.last_name }}
+              </h3>
+              <p class="text-xs text-gray-500">ID: {{ student.student_id }}</p>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button class="acknowledge-btn flex-1 bg-green-500 text-white rounded-lg text-xs py-2">
+              Acknowledge
+            </button>
+            <button class="dismiss-btn flex-1 bg-gray-200 text-gray-700 rounded-lg text-xs py-2">
+              Dismiss
+            </button>
+          </div>
+        </div>
+        {% else %}
+        <div class="col-span-2 text-center py-12">
+          <p class="text-gray-500">No students waiting</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>

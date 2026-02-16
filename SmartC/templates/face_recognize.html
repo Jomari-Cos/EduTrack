@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Recognition - Face Recognition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+     <link rel="stylesheet" href="{{ url_for('static', filename='Css/face_recognize.css') }}">
+     <link rel="stylesheet" href="{{ url_for('static', filename='Css/face_system/features.css') }}">
+
+     <!-- Add this to your HTML head for confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+<style>
+    /* Compact Layout Styles */
+    * { box-sizing: border-box; }
+    
+    body { 
+        margin: 0; 
+        padding: 0; 
+        overflow-x: hidden; 
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: #f5f6fa;
+    }
+    
+    /* Fixed Header - 60px */
+    .fixed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1050;
+    }
+    
+    .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .header-actions .btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    /* Horizontal Stats Bar */
+    .stats-bar {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 380px;
+        height: 50px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        z-index: 1040;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .side-panel.collapsed ~ .stats-bar {
+        right: 0;
+    }
+    
+    .stats-bar.collapsed {
+        height: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+    
+    .stats-bar-toggle {
+        position: fixed;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1045;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 0.25rem 0.75rem;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .stats-bar-toggle:hover {
+        background: #f8f9fa;
+    }
+    
+    .stats-bar-toggle i {
+        transition: transform 0.3s ease;
+    }
+    
+    .stats-bar.collapsed + .stats-bar-toggle i {
+        transform: rotate(180deg);
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        background: #f8f9fa;
+    }
+    
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    
+    .stat-content h4 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+    
+    .stat-content p {
+        margin: 0;
+        font-size: 0.7rem;
+        color: #6c757d;
+        line-height: 1;
+    }
+    
+    /* Main Content Area */
+    .main-content {
+        margin-top: 110px;
+        margin-right: 380px;
+        padding: 0.5rem;
+        min-height: calc(100vh - 110px);
+        transition: margin-top 0.3s ease, margin-right 0.3s ease;
+    }
+    
+    .stats-bar.collapsed ~ .main-content {
+        margin-top: 60px;
+    }
+    
+    .side-panel.collapsed ~ .main-content {
+        margin-right: 0;
+    }
+    
+    /* Tabbed Side Panel - 380px */
+    .side-panel {
+        position: fixed;
+        top: 60px;
+        right: 0;
+        width: 380px;
+        height: calc(100vh - 60px);
+        background: white;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        z-index: 1030;
+        transition: transform 0.3s ease;
+    }
+    
+    .side-panel.collapsed {
+        transform: translateX(100%);
+    }
+    
+    .side-panel-toggle {
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        z-index: 1035;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        padding: 1rem 0.5rem;
+        cursor: pointer;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        transition: right 0.3s ease;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+    }
+    
+    .side-panel.collapsed ~ .side-panel-toggle {
+        right: 0;
+    }
+    
+    .side-panel:not(.collapsed) ~ .side-panel-toggle {
+        right: 380px;
+    }
+    
+    .side-panel-toggle:hover {
+        background: #f8f9fa;
+    }
+    
+    .side-panel-toggle i {
+        transition: transform 0.3s ease;
+        writing-mode: horizontal-tb;
+    }
+    
+    .side-panel.collapsed ~ .side-panel-toggle i {
+        transform: rotate(180deg);
+    }
+    
+    .side-tabs {
+        display: flex;
+        border-bottom: 2px solid #e9ecef;
+        background: #f8f9fa;
+    }
+    
+    .side-tab {
+        flex: 1;
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        font-size: 0.75rem;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .side-tab:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .side-tab.active {
+        color: #667eea;
+        font-weight: 600;
+    }
+    
+    .side-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #667eea;
+    }
+    
+    .side-tab i {
+        display: block;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .tab-content-panel {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    
+    .tab-pane-custom {
+        display: none;
+    }
+    
+    .tab-pane-custom.active {
+        display: block;
+    }
+    
+    /* Compact Form Controls */
+    .compact-switch {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .compact-switch label {
+        margin: 0;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+    
+    .compact-form-group {
+        margin-bottom: 0.75rem;
+    }
+    
+    .compact-form-group label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+    
+    /* Mini Face List */
+    .mini-face-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s;
+    }
+    
+    .mini-face-item:hover {
+        background: #e9ecef;
+        transform: translateX(-3px);
+    }
+    
+    .mini-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    
+    .mini-face-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .mini-face-info h6 {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .mini-face-info p {
+        margin: 0;
+        font-size: 0.7rem;
+        color: #6c757d;
+    }
+    
+    /* Floating Action Button */
+    .fab {
+        position: fixed;
+        bottom: 2rem;
+        right: 400px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+    
+    .side-panel.collapsed ~ .fab {
+        right: 2rem;
+    }
+    
+    .fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+    
+    .fab i {
+        font-size: 1.5rem;
+    }
+    
+    /* Quick Actions */
+    .quick-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: none;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .stats-bar {
+            right: 0;
+            flex-wrap: wrap;
+            height: auto;
+            padding: 0.5rem;
+        }
+        
+        .stats-bar.collapsed {
+            height: 0;
+            padding: 0;
+        }
+        
+        .stat-item {
+            flex: 1 1 45%;
+            margin: 0.25rem;
+        }
+        
+        .side-panel {
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .side-panel.mobile-open {
+            transform: translateX(0);
+        }
+        
+        .side-panel-toggle {
+            display: none;
+        }
+        
+        .main-content {
+            margin-right: 0;
+        }
+        
+        .fab {
+            right: 2rem;
+        }
+    }
+    
+    /* Scrollbar */
+    .tab-content-panel::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .tab-content-panel::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    .tab-content-panel::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 3px;
+    }
+</style>
+
+<!-- Virtual Keyboard CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='Css/virtual-keyboard.css') }}">
+
+</head>
+<body>
+    <!-- Fixed Header - 60px -->
+    <header class="fixed-header">
+        <div class="header-brand">
+            <i class="fas fa-video"></i>
+            <span>Live Face Recognition</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-sm text-white d-md-none" onclick="toggleSidePanel()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Horizontal Stats Bar -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <div class="stat-icon bg-primary text-white">
+                <i class="fas fa-eye"></i>
+            </div>
+            <div class="stat-content">
+                <h4 id="detectedFaces">0</h4>
+                <p>Detected</p>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon bg-success text-white">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-content">
+                <h4 id="recognizedFaces">0</h4>
+                <p>Recognized</p>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon bg-warning text-white">
+                <i class="fas fa-hand-paper"></i>
+            </div>
+            <div class="stat-content">
+                <h4 id="detectedHands">0</h4>
+                <p>Hands</p>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon bg-info text-white">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h4 id="activeTracks">0</h4>
+                <p>Tracking</p>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon bg-secondary text-white">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h4 id="processingTime">0ms</h4>
+                <p>Processing</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Bar Toggle Button -->
+    <button class="stats-bar-toggle" onclick="toggleStatsBar()" title="Toggle Stats Bar">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="card p-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-search me-2"></i>Live Face Recognition with Hand Detection
+                </h1>
+                        <div>
+                            <a href="/dashboard" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-home me-2"></i>Go back
+                            </a>
+                            <button id="toggleCamera" class="btn btn-primary">
+                                <i class="fas fa-play me-2"></i>Start Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <video id="video" width="100%" height="auto" autoplay></video>
+                        <canvas id="overlay"></canvas>
+                        <div id="noCamera" class="text-center text-white p-5" style="display: none;">
+                            <h3><i class="fas fa-video-slash me-2"></i>Camera Access Required</h3>
+                            <p>Please allow camera access to use face recognition.</p>
+                            <button id="retryCamera" class="btn btn-light mt-3">
+                                <i class="fas fa-redo me-2"></i>Retry Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+
+        </div>
+    </div>
+
+    <!-- Tabbed Side Panel -->
+    <div class="side-panel" id="sidePanel">
+        <!-- Tab Buttons -->
+        <div class="side-tabs">
+            <button class="side-tab active" onclick="switchTab(0)">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </button>
+            <button class="side-tab" onclick="switchTab(1)">
+                <i class="fas fa-list"></i>
+                <span>Faces</span>
+            </button>
+            <button class="side-tab" onclick="switchTab(2)">
+                <i class="fas fa-database"></i>
+                <span>Database</span>
+            </button>
+            <button class="side-tab" onclick="switchTab(3)">
+                <i class="fas fa-clipboard"></i>
+                <span>Actions</span>
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content-panel">
+            <!-- Tab 1: Settings -->
+            <div class="tab-pane-custom active" id="tab-0">
+                <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Section Filter</h6>
+                <div class="compact-form-group">
+                    <label>Current Section</label>
+                    <div class="d-flex gap-1 mb-2">
+                        <span id="currentGrade" class="badge bg-primary">GRADE</span>
+                        <span id="currentSection" class="badge bg-primary">SECTION</span>
+                        <span id="currentSubject" class="badge bg-success">SUBJECT</span>
+                    </div>
+                </div>
+                
+                <div class="compact-form-group">
+                    <label>Select Section</label>
+                    <div class="input-group input-group-sm">
+                        <select class="form-select form-select-sm" id="sectionFilter">
+                            <option value="">All Sections</option>
+                        </select>
+                        <button class="btn btn-outline-primary" onclick="refreshSections()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted" id="selectedSectionInfo">All Sections</small>
+                </div>
+
+                <hr class="my-3">
+
+                <h6 class="mb-3"><i class="fas fa-toggle-on me-2"></i>Detection Settings</h6>
+                
+                <div class="compact-switch">
+                    <label for="enableTracking"><i class="fas fa-id-card me-1"></i>Face Tracking</label>
+                    <input class="form-check-input" type="checkbox" id="enableTracking" checked>
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="enableHandDetection"><i class="fas fa-hand-paper me-1"></i>Hand Detection</label>
+                    <input class="form-check-input" type="checkbox" id="enableHandDetection" checked>
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="attendanceToggle"><i class="fas fa-user-check me-1"></i>Auto Attendance</label>
+                    <input class="form-check-input" type="checkbox" id="attendanceToggle">
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="debugMode"><i class="fas fa-bug me-1"></i>Debug Mode</label>
+                    <input class="form-check-input" type="checkbox" id="debugMode">
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="autoRecognition"><i class="fas fa-robot me-1"></i>Auto Recognition</label>
+                    <input class="form-check-input" type="checkbox" id="autoRecognition" checked>
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="showTrackIDs"><i class="fas fa-hashtag me-1"></i>Show Track IDs</label>
+                    <input class="form-check-input" type="checkbox" id="showTrackIDs" checked>
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="showLandmarks"><i class="fas fa-dot-circle me-1"></i>Face Landmarks</label>
+                    <input class="form-check-input" type="checkbox" id="showLandmarks" checked>
+                </div>
+                
+                <div class="compact-switch">
+                    <label for="showHandLandmarks"><i class="fas fa-hand-paper me-1"></i>Hand Landmarks</label>
+                    <input class="form-check-input" type="checkbox" id="showHandLandmarks" checked>
+                </div>
+
+                <hr class="my-3">
+
+                <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Performance</h6>
+                <div class="stat-item mb-2">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <small class="text-muted">Recognition Calls</small>
+                        <strong id="recognitionCount">0</strong>
+                    </div>
+                </div>
+                <div class="stat-item mb-2">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <small class="text-muted">Hand Count</small>
+                        <strong id="handCount">0</strong>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <small class="text-muted">Optimization</small>
+                        <strong id="optimizationRate">100%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Tracked Faces -->
+            <div class="tab-pane-custom" id="tab-1">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0"><i class="fas fa-user-friends me-2"></i>Tracked Faces</h6>
+                    <span class="badge bg-primary" id="trackedFacesCount">0</span>
+                </div>
+                <div id="facesList" style="min-height: 200px;">
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-user-slash fa-2x mb-2"></i>
+                        <p class="small mb-0">No faces detected yet</p>
+                        <p class="small">Start the camera to begin</p>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <button class="quick-btn btn btn-outline-warning w-100" onclick="clearTracking()">
+                    <i class="fas fa-redo"></i><span>Clear All Tracking</span>
+                </button>
+            </div>
+
+            <!-- Tab 3: Database Info -->
+            <div class="tab-pane-custom" id="tab-2">
+                <h6 class="mb-3"><i class="fas fa-database me-2"></i>Database Information</h6>
+                
+                <div class="stat-item mb-2">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <div>
+                            <p class="mb-0 small text-muted">Total Sections</p>
+                        </div>
+                        <h4 class="mb-0" id="dbSections">0</h4>
+                    </div>
+                </div>
+                
+                <div class="stat-item mb-3">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <div>
+                            <p class="mb-0 small text-muted">Total Persons</p>
+                        </div>
+                        <h4 class="mb-0" id="dbPersons">0</h4>
+                    </div>
+                </div>
+
+                <div class="compact-form-group">
+                    <label>Session ID</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" id="sessionId" value="-" readonly style="font-size: 0.75rem;">
+                        <button class="btn btn-outline-secondary" onclick="copySessionId()" title="Copy to clipboard">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="compact-form-group">
+                    <label>Search Performance</label>
+                    <div class="alert alert-info p-2 mb-2" style="font-size: 0.8rem;">
+                        <i class="fas fa-bolt me-1"></i>
+                        <span id="searchSpeed">Optimized search</span>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="quick-btn btn btn-primary flex-fill" onclick="refreshDatabase()">
+                        <i class="fas fa-sync-alt"></i><span>Refresh</span>
+                    </button>
+                    <button class="quick-btn btn btn-outline-primary flex-fill" onclick="refreshSections()">
+                        <i class="fas fa-list"></i><span>Sections</span>
+                    </button>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="bg-light p-2 rounded">
+                    <small class="text-muted">
+                        <strong>Status:</strong><br>
+                        <span id="trackingStatus" class="badge bg-success">Tracking ON</span>
+                        <span id="attendanceStatus" class="badge bg-secondary ms-1">Attendance OFF</span>
+                    </small>
+                </div>
+                
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>Last: <span id="lastRecognitionTime">-</span>
+                    </small>
+                </div>
+            </div>
+
+            <!-- Tab 4: Quick Actions -->
+            <div class="tab-pane-custom" id="tab-3">
+                <h6 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                
+                <button class="quick-btn btn btn-info w-100 mb-2" onclick="showStudentsListModal()">
+                    <i class="fas fa-users"></i><span>View Students List</span>
+                    <span id="studentCountBadge" class="badge bg-danger ms-auto" style="display:none;">0</span>
+                </button>
+                
+                <button class="quick-btn btn btn-success w-100 mb-2" onclick="showAttendanceSummary()">
+                    <i class="fas fa-clipboard-list"></i><span>View Attendance</span>
+                </button>
+                
+                <button class="quick-btn btn btn-warning w-100 mb-2" onclick="clearTracking()">
+                    <i class="fas fa-redo"></i><span>Clear Tracking</span>
+                </button>
+                
+                <button class="quick-btn btn btn-secondary w-100 mb-3" onclick="testModal()">
+                    <i class="fas fa-vial"></i><span>Test Hand Raise Modal</span>
+                </button>
+
+                <hr class="my-3">
+
+                <h6 class="mb-3"><i class="fas fa-keyboard me-2"></i>Keyboard Shortcuts</h6>
+                <div class="bg-light p-2 rounded" style="font-size: 0.75rem;">
+                    <div class="d-flex justify-content-between mb-1">
+                        <kbd>Space</kbd> <span class="text-muted">Start/Stop Camera</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <kbd>S</kbd> <span class="text-muted">Show Students</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <kbd>A</kbd> <span class="text-muted">View Attendance</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Side Panel Toggle Button -->
+    <button class="side-panel-toggle" onclick="toggleSidePanelCollapse()" title="Toggle Side Panel">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="showStudentsListModal()" title="Quick Students List">
+        <i class="fas fa-users"></i>
+    </button>
+
+    <!-- Hidden compatibility elements -->
+    <div style="display: none;">
+        <button id="floatingStudentsBtn"></button>
+        <button id="acknowledgeStudentsBtn"></button>
+    </div>
+
+    <!-- Hand Raise Modal - Compact -->
+    <style>
+        #handRaiseModal .modal-dialog {
+            max-width: 75vw !important;
+            width: 20vw !important;
+        }
+        #handRaiseModal .modal-content {
+            width: 100% !important;
+        }
+    </style>
+    <div id="handRaiseModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 75vw !important; width: 20vw !important;">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-hand-paper me-2"></i>Hand Raised!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-5 text-center">
+                            <div id="modalFaceImage" class="mb-3">
+                                <div style="font-size: 3rem;">👤</div>
+                                <small>Face Preview</small>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="mb-2">
+                                <strong>Name:</strong> <span id="modalPersonName">-</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>ID:</strong> <span id="modalPersonId">-</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Section:</strong> <span id="modalPersonSection">-</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Confidence:</strong> <span id="modalPersonConfidence">-</span>
+                            </div>
+                            <div class="alert alert-warning p-2 mb-2">
+                                <i class="fas fa-hand-paper me-1"></i>
+                                <span id="modalHandSide">Hand raised</span>
+                            </div>
+                            <div class="mb-2">
+                                <label for="modalPointsInput" class="form-label">Points:</label>
+                                <input type="number" class="form-control form-control-sm" id="modalPointsInput" min="0" max="100" value="5">
+                            </div>
+                            <div class="form-text">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Voice commands: "five points", "increase by ten", "save points"
+                                    <a href="#" class="ms-1" onclick="showVoiceCommandHelpModal()">Help</a>
+                                </small>
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-success" 
+                                        onclick="toggleVoiceRecognition()" id="voiceToggleBtn">
+                                    <i class="fas fa-microphone me-1"></i> <span id="voiceStatusBadge">Voice</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Close
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="acknowledgeHandRaise()">
+                        <i class="fas fa-check me-1"></i>Acknowledge
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students List Modal -->
+    <style>
+        #studentsListModal .modal-dialog {
+            max-width: 85vw !important;
+            width: 85vw !important;
+        }
+    </style>
+    <div id="studentsListModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl" style="max-width: 85vw !important;">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-users me-2"></i>Students List
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="studentSearchInput" 
+                                   placeholder="Search students..." oninput="filterStudentsList()">
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-outline-primary" onclick="refreshStudentsList()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                            <span class="ms-3">
+                                <strong>Showing:</strong> <span id="filteredStudentsCount">0</span> / <span id="totalStudentsCount">0</span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div id="studentsLoadingSpinner" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-3">Loading...</p>
+                    </div>
+                    
+                    <div id="studentsErrorMessage" class="alert alert-danger" style="display: none;">
+                        <span id="studentsErrorText"></span>
+                    </div>
+                    
+                    <div id="studentsEmptyState" class="text-center py-5" style="display: none;">
+                        <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                        <p>No students found</p>
+                    </div>
+                    
+                    <div id="studentsListContainer" class="row g-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+    
+    <!-- Tab Control Scripts -->
+    <script>
+        // Tab Switching
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.side-tab');
+            const panes = document.querySelectorAll('.tab-pane-custom');
+            
+            tabs.forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('active');
+                    panes[i].classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                    panes[i].classList.remove('active');
+                }
+            });
+        }
+
+        // Toggle Side Panel (Mobile)
+        function toggleSidePanel() {
+            const panel = document.getElementById('sidePanel');
+            panel.classList.toggle('mobile-open');
+        }
+        
+        // Toggle Side Panel Collapse (Desktop)
+        function toggleSidePanelCollapse() {
+            const panel = document.getElementById('sidePanel');
+            panel.classList.toggle('collapsed');
+        }
+        
+        // Toggle Stats Bar
+        function toggleStatsBar() {
+            const statsBar = document.getElementById('statsBar');
+            statsBar.classList.toggle('collapsed');
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('toggleCamera').click();
+            } else if (e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                showStudentsListModal();
+            } else if (e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                showAttendanceSummary();
+            }
+        });
+
+        // Toggle switches update status badges
+        document.getElementById('attendanceToggle').addEventListener('change', function() {
+            const status = document.getElementById('attendanceStatus');
+            if (this.checked) {
+                status.textContent = 'Attendance ON';
+                status.classList.remove('bg-secondary');
+                status.classList.add('bg-success');
+            } else {
+                status.textContent = 'Attendance OFF';
+                status.classList.remove('bg-success');
+                status.classList.add('bg-secondary');
+            }
+        });
+
+        document.getElementById('enableTracking').addEventListener('change', function() {
+            const status = document.getElementById('trackingStatus');
+            if (this.checked) {
+                status.textContent = 'Tracking ON';
+                status.classList.remove('bg-secondary');
+                status.classList.add('bg-success');
+            } else {
+                status.textContent = 'Tracking OFF';
+                status.classList.remove('bg-success');
+                status.classList.add('bg-secondary');
+            }
+        });
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/dashboard/face_recognize.js') }}?v=3.2"></script>
+    
+    <!-- Virtual Keyboard JS -->
+    <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}"></script>
+
+</body>
+</html>

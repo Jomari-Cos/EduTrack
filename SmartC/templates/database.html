@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students Database</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">📚 Students Database</h1>
+    <a href="{{ url_for('admin.admin_dashboard') }}" 
+       class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+      ⬅ Back to Admin
+    </a>
+  </nav>
+
+  <div class="p-6 h-[600px] overflow-y-auto">
+    <!-- Student Cards -->
+    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for student in students %}
+      <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center">
+
+        <!-- Avatar (Image or Fallback) -->
+        {% if student.image %}
+          <img src="{{ url_for('static', filename='uploads/' ~ student.image) }}" 
+               alt="Student Photo"
+               class="h-20 w-20 rounded-full object-cover border">
+        {% else %}
+          <div class="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xl">
+            {{ student.name[0] }}
+          </div>
+        {% endif %}
+
+        <h2 class="mt-3 font-semibold text-lg">{{ student.name }}</h2>
+        <p class="text-sm text-gray-500">ID: {{ student.student_id }}</p>
+        <p class="text-sm text-gray-500">{{ student.email }}</p>
+        <p class="text-sm text-gray-500">Class: {{ student.section or "Not Assigned" }}</p>
+      </div>
+      {% else %}
+      <p class="col-span-full text-center text-gray-500">⚠ No students found.</p>
+      {% endfor %}
+    </main>
+  </div>
+
+</body>
+</html>

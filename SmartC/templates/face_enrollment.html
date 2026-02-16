@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+      rel="stylesheet"
+    />
+    <style>
+      .toggle-active {
+        transform: scale(1.05);
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      #classModal.show {
+        display: flex;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      }
+      .alert-custom {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        padding: 12px 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+        border: 1px solid transparent;
+      }
+      .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        padding: 12px 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+        border: 1px solid transparent;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav
+      class="bg-white p-4 shadow flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0"
+    >
+      <h1 class="text-xl font-semibold">Admin Dashboard</h1>
+      <div class="flex gap-2">
+        <a href="{{ url_for('admin.view_students') }}">
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            View Students
+          </button>
+        </a>
+        <form action="{{ url_for('logout') }}" method="post">
+          <button
+            id="logoutBtn"
+            class="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
+          >
+            <span class="material-symbols-outlined">logout</span>
+          </button>
+        </form>
+      </div>
+    </nav>
+
+    <main class="p-6 flex-1 w-full">
+      <!-- Toggle Switch -->
+      <div class="flex justify-center space-x-4 mb-6">
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            name="section-toggle"
+            class="hidden"
+            id="teacher-toggle"
+            checked
+          />
+          <span
+            class="toggle-span px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 toggle-active"
+            >Teachers</span
+          >
+        </label>
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            name="section-toggle"
+            class="hidden"
+            id="student-toggle"
+          />
+          <span
+            class="toggle-span px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600"
+            >Students</span
+          >
+        </label>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="{% if category == 'error' %}alert-custom{% else %}alert-success{% endif %} mb-4">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Teacher Panel -->
+      <section id="teacher-section" class="">
+        <div class="bg-white shadow-md rounded-lg p-6 max-w-lg mx-auto w-full">
+          <h2 class="text-lg font-bold mb-4">👩‍🏫 Manage Teachers</h2>
+          
+          <form
+            id="teacherForm"
+            action="{{ url_for('add_teacher') }}"
+            method="post"
+            enctype="multipart/form-data"
+            class="space-y-4"
+          >
+            <!-- Name -->
+            <div>
+              <label for="teacherName" class="block text-sm font-medium"
+                >Name</label
+              >
+              <input
+                type="text"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500"
+                id="teacherName"
+                name="teacher_name"
+                placeholder="e.g., Jane Doe"
+                required
+              />
+            </div>
+            <!-- ID -->
+            <div>
+              <label for="teacherId" class="block text-sm font-medium"
+                >ID</label
+              >
+              <input
+                type="text"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500"
+                id="teacherId"
+                name="teacher_id"
+                placeholder="e.g., T123"
+                required
+              />
+            </div>
+            <!-- Email -->
+            <div>
+              <label for="teacherEmail" class="block text-sm font-medium"
+                >Email</label
+              >
+              <input
+                type="email"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500"
+                id="teacherEmail"
+                name="teacher_email"
+                placeholder="e.g., jane@example.com"
+                required
+              />
+            </div>
+            <!-- Assigned Classes -->
+            <div>
+              <label class="block text-sm font-medium">Assigned Classes</label>
+              <ul
+                id="assignedClassesList"
+                class="list-disc list-inside text-gray-700 mt-2 max-h-32 overflow-y-auto"
+              ></ul>
+              <input
+                type="hidden"
+                name="assigned_classes"
+                id="assignedClassesInput"
+              />
+              <button
+                type="button"
+                onclick="openClassModal()"
+                class="flex items-center gap-1 mt-2 px-3 py-1 rounded-lg bg-green-500 text-white hover:bg-green-600"
+              >
+                <span class="material-symbols-outlined">add</span> Add Class
+              </button>
+            </div>
+            <!-- Password -->
+            <div>
+              <label for="teacherPassword" class="block text-sm font-medium"
+                >Password</label
+              >
+              <input
+                type="password"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500"
+                id="teacherPassword"
+                name="teacher_password"
+                placeholder="Enter password"
+                required
+              />
+            </div>
+            <!-- Confirm Password -->
+            <div>
+              <label
+                for="teacherConfirmPassword"
+                class="block text-sm font-medium"
+                >Confirm Password</label
+              >
+              <input
+                type="password"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500"
+                id="teacherConfirmPassword"
+                placeholder="Re-enter password"
+                required
+              />
+              <p id="passwordError" class="text-red-500 text-sm hidden">
+                ⚠️ Passwords do not match
+              </p>
+            </div>
+            <!-- Photo -->
+            <div>
+              <label for="teacherPhoto" class="block text-sm font-medium"
+                >Photo</label
+              >
+              <input
+                id="teacherPhoto"
+                name="teacher_photo"
+                type="file"
+                accept="image/*"
+                class="block w-full text-sm text-gray-600"
+              />
+            </div>
+            
+            <!-- RFID -->
+            <div>
+              <label class="block text-sm font-medium mb-2">RFID</label>
+              <a href="#" id="openRfidModal" class="text-blue-500 hover:underline">Do you have an RFID?</a>
+              <input type="hidden" id="rfidInput" name="rfid_code" />
+              <div id="rfidDisplay" class="mt-2 text-sm text-gray-600 hidden">
+                RFID: <span id="rfidValue"></span>
+                <button type="button" onclick="clearRfid()" class="ml-2 text-red-500 hover:text-red-700 text-xs">Clear</button>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button
+              type="submit"
+              id="teacherSubmitBtn"
+              class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Teacher
+            </button>
+            
+            <!-- Debug Info -->
+            <div id="formDebug" class="mt-4 p-3 bg-gray-100 rounded text-xs hidden">
+              <h4 class="font-bold">Form Debug Info:</h4>
+              <div id="debugContent"></div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Student Panel -->
+      <section id="student-section" class="hidden">
+        <div class="bg-white shadow-md rounded-lg p-6 max-w-lg mx-auto w-full">
+          <h2 class="text-lg font-bold mb-4">👨‍🎓 Manage Students</h2>
+          <form
+            action="{{ url_for('admin.add_student') }}"
+            method="post"
+            enctype="multipart/form-data"
+            class="space-y-4"
+          >
+            <!-- Name Fields -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="firstName" class="block text-sm font-medium"
+                  >First Name</label
+                >
+                <input
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  id="firstName"
+                  name="first_name"
+                  placeholder="e.g., John"
+                  required
+                />
+              </div>
+              <div>
+                <label for="middleInitial" class="block text-sm font-medium"
+                  >Middle Initial</label
+                >
+                <input
+                  maxlength="1"
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  id="middleInitial"
+                  name="middle_initial"
+                  placeholder="M"
+                />
+              </div>
+              <div class="sm:col-span-2">
+                <label for="lastName" class="block text-sm font-medium"
+                  >Last Name</label
+                >
+                <input
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  id="lastName"
+                  name="last_name"
+                  placeholder="e.g., Smith"
+                  required
+                />
+              </div>
+            </div>
+            <!-- Date, Gender, Grade -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="dob" class="block text-sm font-medium"
+                  >Date of Birth</label
+                >
+                <input
+                  type="date"
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  id="dob"
+                  name="date_of_birth"
+                  required
+                />
+              </div>
+              <div>
+                <label for="gender" class="block text-sm font-medium"
+                  >Gender</label
+                >
+                <select
+                  id="gender"
+                  name="gender"
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  required
+                >
+                  <option value="" disabled selected>Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="gradeLevel" class="block text-sm font-medium"
+                  >Grade Level</label
+                >
+                <select
+                  id="gradeLevel"
+                  name="grade_level"
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  required
+                >
+                  <option value="" disabled selected>Select grade</option>
+                  {% for i in range(10, 13) %}
+                  <option value="{{ i }}">Grade {{ i }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="section" class="block text-sm font-medium"
+                  >Section</label
+                >
+                <select
+                  id="section"
+                  name="section"
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  required
+                >
+                  <option value="" disabled selected>Select section</option>
+                </select>
+              </div>
+            </div>
+            <!-- Contact & Guardian Info -->
+            <div>
+              <label for="contactInfo" class="block text-sm font-medium"
+                >Contact Information</label
+              >
+              <input
+                type="tel"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                id="contactInfo"
+                name="contact_info"
+                placeholder="e.g., +63 912 345 6789"
+                required
+              />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="guardian_name" class="block text-sm font-medium"
+                  >Guardian</label
+                >
+                <input
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  id="guardian_name"
+                  name="guardian_name"
+                  placeholder="e.g., Jane Smith"
+                  required
+                />
+              </div>
+              <div>
+                <label for="guardian_contact" class="block text-sm font-medium"
+                  >Guardian Contact</label
+                >
+                <input
+                  type="tel"
+                  class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                  id="guardian_contact"
+                  name="guardian_contact"
+                  placeholder="e.g., +63 987 654 3210"
+                  required
+                />
+              </div>
+            </div>
+            <!-- Email, ID, Photo -->
+            <div>
+              <label for="studentEmail" class="block text-sm font-medium"
+                >Email</label
+              >
+              <input
+                type="email"
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                id="studentEmail"
+                name="student_email"
+                placeholder="e.g., john@example.com"
+                required
+              />
+            </div>
+            <div>
+              <label for="studentId" class="block text-sm font-medium"
+                >ID</label
+              >
+              <input
+                class="w-full rounded-lg border-gray-300 p-2 focus:ring-green-500 focus:border-green-500"
+                id="studentId"
+                name="student_id"
+                placeholder="e.g., S456"
+                required
+              />
+            </div>
+            <div>
+              <label for="studentPhoto" class="block text-sm font-medium"
+                >Photo</label
+              >
+              <input
+                id="studentPhoto"
+                name="student_photo"
+                type="file"
+                accept="image/*"
+                class="block w-full text-sm text-gray-600"
+              />
+            </div>
+            
+            <!-- New Face Enrollment Button -->
+            <div class="mt-4">
+              <button
+                type="button"
+                onclick="proceedToFaceEnrollment()"
+                class="px-4 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 w-full"
+              >
+                Proceed to Face Enrollment
+              </button>
+            </div>
+            
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 w-full"
+            >
+              Add Student
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- RFID Modal -->
+    <div id="rfidModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+      <div class="bg-white rounded-lg p-6 w-96 relative">
+        <span id="closeRfidModal" class="absolute top-2 right-3 cursor-pointer text-gray-500 text-xl">&times;</span>
+        <h2 class="text-lg font-bold mb-4">RFID Scan</h2>
+        <p id="rfidMessage" class="mb-4">Please scan your RFID card now.</p>
+        <div id="rfidResult" class="text-green-600 font-semibold"></div>
+        <div class="mt-4 text-sm text-gray-500">
+          <p>Press Enter to complete scan, Backspace to delete last character.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add Class -->
+    <div
+      id="classModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+        <h2 class="text-lg font-bold mb-4">➕ Add Class</h2>
+        <form id="classForm" class="space-y-4">
+          <!-- Grade -->
+          <div>
+            <label for="classLevel" class="block text-sm font-medium"
+              >Grade Level</label
+            >
+            <select
+              id="classLevel"
+              name="class_Level"
+              class="w-full rounded-lg border-gray-300 p-2"
+              required
+            >
+              <option value="" disabled selected>Select grade</option>
+              {% for i in range(10, 13) %}
+              <option value="{{ i }}">Grade {{ i }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Section -->
+          <div>
+            <label for="sectionLevel" class="block text-sm font-medium"
+              >Section</label
+            >
+            <select
+              id="sectionLevel"
+              name="section_Level"
+              class="w-full rounded-lg border-gray-300 p-2"
+              required
+            >
+              <option value="" disabled selected>Select section</option>
+            </select>
+          </div>
+
+          <!-- Subject -->
+          <div>
+            <label for="subjectLevel" class="block text-sm font-medium"
+              >Subject</label
+            >
+            <select
+              id="subjectLevel"
+              name="subject_Level"
+              class="w-full rounded-lg border-gray-300 p-2"
+              required
+            >
+              <option value="" disabled selected>Select subject</option>
+            </select>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              onclick="closeClassModal()"
+              class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+            >
+              Add
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function proceedToFaceEnrollment() {
+        // Get form data
+        const firstName = document.getElementById('firstName').value;
+        const lastName = document.getElementById('lastName').value;
+        const studentId = document.getElementById('studentId').value;
+        
+        if (!firstName || !lastName || !studentId) {
+          alert('Please fill in at least First Name, Last Name, and Student ID before proceeding to face enrollment.');
+          return;
+        }
+        
+        // Redirect to face enrollment page with student data
+        window.location.href = `/admin/face-enrollment?first_name=${encodeURIComponent(firstName)}&last_name=${encodeURIComponent(lastName)}&student_id=${encodeURIComponent(studentId)}`;
+      }
+
+      function clearRfid() {
+        document.getElementById('rfidInput').value = '';
+        document.getElementById('rfidValue').textContent = '';
+        document.getElementById('rfidDisplay').classList.add('hidden');
+      }
+
+      // Enhanced form submission with debugging
+      document.getElementById('teacherForm')?.addEventListener('submit', function(e) {
+        const formData = new FormData(this);
+        console.log('Form data being submitted:');
+        
+        // Show debug info
+        const debugDiv = document.getElementById('formDebug');
+        const debugContent = document.getElementById('debugContent');
+        debugContent.innerHTML = '';
+        
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}: ${value}`);
+          debugContent.innerHTML += `<div><strong>${key}:</strong> ${value}</div>`;
+        }
+        
+        debugDiv.classList.remove('hidden');
+        
+        // Validate passwords match
+        const password = document.getElementById('teacherPassword').value;
+        const confirmPassword = document.getElementById('teacherConfirmPassword').value;
+        
+        if (password !== confirmPassword) {
+          e.preventDefault();
+          alert('Passwords do not match!');
+          return false;
+        }
+        
+        return true;
+      });
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/adminJS.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Admin Dashboard v2.0</title>
+     <!-- FIXED: Replace script with link for Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+      rel="stylesheet"
+    />
+    
+    <!-- Virtual Keyboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='Css/virtual-keyboard.css') }}">
+    <style>
+      .toggle-active {
+        transform: scale(1.05);
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      #classModal.show {
+        display: flex;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      }
+      /* Custom scrollbar for better UX */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #fb923c;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #f97316;
+      }
+      
+      /* Force settings modal scroll behavior */
+      #systemSettingsModal .custom-scrollbar {
+        overflow-y: scroll !important;
+        max-height: 60vh !important;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-white p-4 shadow-md">
+      <div
+        class="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-4"
+      >
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">
+          Admin Dashboard
+        </h1>
+        <div class="flex flex-wrap gap-2 justify-center w-full sm:w-auto">
+          <button
+            id="view-student-btn"
+            class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
+          >
+            View Students
+          </button>
+          <button
+            id="view-teachers-btn"
+            class="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm sm:text-base"
+          >
+            View Teachers
+          </button>
+          <button
+            id="face-list-btn"
+            class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm sm:text-base"
+          >
+            View Face List
+          </button>
+          <button
+            id="system-settings-btn"
+            class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm sm:text-base flex items-center gap-1"
+          >
+            <span class="material-symbols-outlined text-sm" style="color: #fef08a;">settings</span>
+            Settings
+          </button>
+          <button
+            id="logout-btn"
+            class="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm sm:text-base"
+          >
+            <span class="material-symbols-outlined text-sm" style="color: #fecaca;">logout</span>
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="flex-1 container mx-auto p-4 sm:p-6 lg:p-8">
+      <!-- Toggle Switch -->
+      <div class="flex justify-center space-x-2 sm:space-x-4 mb-6">
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            name="section-toggle"
+            class="hidden"
+            id="teacher-toggle"
+            checked
+          />
+          <span
+            class="toggle-span px-4 sm:px-6 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 toggle-active text-sm sm:text-base"
+          >
+            Teachers
+          </span>
+        </label>
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            name="section-toggle"
+            class="hidden"
+            id="student-toggle"
+          />
+          <span
+            class="toggle-span px-4 sm:px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 text-sm sm:text-base"
+          >
+            Students
+          </span>
+        </label>
+      </div>
+
+      <!-- ============================= -->
+      <!-- TEACHER SECTION -->
+      <!-- ============================= -->
+      <section id="teacher-section" class="transition-all duration-300">
+        <div
+          class="bg-white shadow-md rounded-xl p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto"
+        >
+          <h2
+            class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-blue-700 flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined">school</span>
+            Manage Teachers
+          </h2>
+
+          <!-- Flash Messages -->
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
+          messages %} {% for category, message in messages %}
+          <div
+            class="p-3 mb-4 rounded-lg text-sm {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200 {% elif category == 'error' %}bg-red-100 text-red-700 border border-red-200 {% else %}bg-gray-100 text-gray-700 border border-gray-200{% endif %}"
+          >
+            {{ message }}
+          </div>
+          {% endfor %} {% endif %} {% endwith %}
+
+          <form
+            id="teacherForm"
+            action="{{ url_for('admin.add_teacher') }}"
+            method="post"
+            enctype="multipart/form-data"
+          >
+            <!-- Responsive Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <!-- LEFT COLUMN -->
+              <div class="space-y-4">
+                <h3 class="text-md font-semibold text-gray-700 border-b pb-2">
+                  Personal Information
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div class="col-span-3 sm:col-span-1">
+                    <label class="block text-sm font-medium mb-1"
+                      >First Name</label
+                    >
+                    <input
+                      type="text"
+                      name="first_name"
+                      placeholder="Jane"
+                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                  <div class="col-span-3 sm:col-span-1">
+                    <label class="block text-sm font-medium mb-1">M.I.</label>
+                    <input
+                      type="text"
+                      name="middle_initial"
+                      maxlength="1"
+                      placeholder="M"
+                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                    />
+                  </div>
+                  <div class="col-span-3 sm:col-span-1">
+                    <label class="block text-sm font-medium mb-1"
+                      >Last Name</label
+                    >
+                    <input
+                      type="text"
+                      name="last_name"
+                      placeholder="Doe"
+                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1"
+                      >Date of Birth</label
+                    >
+                    <input
+                      type="date"
+                      name="date_of_birth"
+                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Gender</label>
+                    <select
+                      name="gender"
+                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                      required
+                    >
+                      <option disabled selected>Select</option>
+                      <option>Male</option>
+                      <option>Female</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Contact Number</label
+                  >
+                  <input
+                    type="tel"
+                    name="contact_info"
+                    placeholder="+63 912 345 6789"
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="teacher_email"
+                    placeholder="jane@example.com"
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Teacher ID</label
+                  >
+                  <input
+                    type="text"
+                    name="teacher_id"
+                    placeholder="T123"
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <!-- RIGHT COLUMN -->
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Assigned Classes</label
+                  >
+                  <ul
+                    id="assignedClassesList"
+                    class="list-disc list-inside text-gray-700 mt-2 max-h-32 overflow-y-auto custom-scrollbar bg-gray-50 p-2 rounded-lg"
+                  ></ul>
+                  <input
+                    type="hidden"
+                    name="assigned_classes"
+                    id="assignedClassesInput"
+                  />
+                  <button
+                    type="button"
+                    onclick="openClassModal()"
+                    class="mt-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
+                  >
+                    <span class="material-symbols-outlined text-sm" style="color: #bbf7d0;">add</span>
+                    Add Class
+                  </button>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1">Password</label>
+                  <input
+                    type="password"
+                    name="teacher_password"
+                    placeholder="••••••"
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Confirm Password</label
+                  >
+                  <input
+                    type="password"
+                    id="teacherConfirmPassword"
+                    placeholder="Re-enter"
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                    required
+                  />
+                  <p
+                    id="passwordError"
+                    class="text-red-500 text-sm mt-1 hidden"
+                  >
+                    ⚠️ Passwords do not match
+                  </p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1">Photo</label>
+                  <input
+                    id="teacherPhoto"
+                    name="teacher_photo"
+                    type="file"
+                    accept="image/*"
+                    class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-1">RFID</label>
+                  <button
+                    type="button"
+                    id="openRfidModal"
+                    class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1"
+                  >
+                    <span class="material-symbols-outlined text-sm"
+                      >credit_card</span
+                    >
+                    Do you have an RFID?
+                  </button>
+                  <input type="hidden" id="rfidInput" name="rfid_code" />
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6 sm:mt-8 text-center">
+              <button
+                type="submit"
+                class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-semibold transition-colors w-full sm:w-auto flex items-center justify-center gap-2 mx-auto"
+              >
+                <span class="material-symbols-outlined text-sm" style="color: #bfdbfe;"
+                  >person_add</span
+                >
+                Add Teacher
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+<!-- ============================= -->
+<!-- STUDENT SECTION -->
+<!-- ============================= -->
+<section id="student-section" class="hidden transition-all duration-300">
+  <div class="bg-white shadow-md rounded-xl p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+    <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-green-700 flex items-center gap-2">
+      <span class="material-symbols-outlined">person</span>
+      Manage Students
+    </h2>
+
+    <!-- Flash Messages for Students -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="p-3 mb-4 rounded-lg text-sm
+          {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200
+          {% elif category == 'error' %}bg-red-100 text-red-700 border border-red-200
+          {% else %}bg-gray-100 text-gray-700 border border-gray-200{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form
+      action="{{ url_for('admin.add_student') }}"
+      method="post"
+      enctype="multipart/form-data"
+    >
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <!-- LEFT COLUMN -->
+        <div class="space-y-4">
+          <h3 class="text-md font-semibold text-gray-700 border-b pb-2">Student Information</h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="col-span-3 sm:col-span-1">
+              <label class="block text-sm font-medium mb-1">First Name</label>
+              <input name="first_name" placeholder="John" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+            </div>
+            <div class="col-span-3 sm:col-span-1">
+              <label class="block text-sm font-medium mb-1">M.I.</label>
+              <input maxlength="1" name="middle_initial" placeholder="M" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" />
+            </div>
+            <div class="col-span-3 sm:col-span-1">
+              <label class="block text-sm font-medium mb-1">Last Name</label>
+              <input name="last_name" placeholder="Smith" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Date of Birth</label>
+              <input type="date" name="date_of_birth" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Gender</label>
+              <select name="gender" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required>
+                <option disabled selected>Select</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Grade Level</label>
+              <select id="gradeLevel" name="grade_level" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required>
+                <option disabled selected>Select grade</option>
+                <!-- Options populated dynamically by adminJS.js -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Section</label>
+              <select id="section" name="section" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" disabled required>
+                <option disabled selected>Select section</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Contact Info</label>
+            <input type="tel" name="contact_info" placeholder="+63 912 345 6789" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="space-y-4">
+          <h3 class="text-md font-semibold text-gray-700 border-b pb-2">Guardian Information</h3>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Guardian</label>
+            <input name="guardian_name" placeholder="Jane Smith" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Guardian Contact</label>
+            <input type="tel" name="guardian_contact" placeholder="+63 987 654 3210" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Email</label>
+            <input type="email" name="student_email" placeholder="john@example.com" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Student ID</label>
+            <input name="student_id" placeholder="S456" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Photo</label>
+            <input id="studentPhoto" name="student_photo" type="file" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+          </div>
+
+          <!-- Hidden input to track Accept/Decline -->
+          <input type="hidden" name="next_action" id="nextAction" value="decline" />
+
+          <div class="mt-4 space-y-2">
+            <button type="button" id="addStudentBtn" class="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors w-full flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-sm" style="color: #bbf7d0;">person_add</span>
+              Add Student
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+    </main>
+
+    <!-- RFID Modal -->
+    <div
+      id="rfidModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md relative">
+        <span
+          id="closeRfidModal"
+          class="absolute top-3 right-3 cursor-pointer text-gray-500 hover:text-gray-700 text-xl"
+          >&times;</span
+        >
+        <h2 class="text-lg font-bold mb-4">RFID Scan</h2>
+        <p id="rfidMessage" class="mb-4">Please scan your RFID card now.</p>
+        <div id="rfidResult" class="text-green-600 font-semibold"></div>
+      </div>
+    </div>
+
+    <!-- Modal: Add Class -->
+    <div
+      id="classModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined">add</span>
+          Add Class
+        </h2>
+        <form id="classForm" class="space-y-4">
+          <!-- Grade -->
+          <div>
+            <label for="classLevel" class="block text-sm font-medium mb-1"
+              >Grade Level</label
+            >
+            <select
+              id="classLevel"
+              name="class_Level"
+              class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+              required
+            >
+              <option value="" disabled selected>Select grade</option>
+              <!-- Options populated dynamically by adminJS.js -->
+            </select>
+          </div>
+
+          <!-- Section -->
+          <div>
+            <label for="sectionLevel" class="block text-sm font-medium mb-1"
+              >Section</label
+            >
+            <select
+              id="sectionLevel"
+              name="section_Level"
+              class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+              required
+            >
+              <option value="" disabled selected>Select section</option>
+            </select>
+          </div>
+
+          <!-- Subject -->
+          <div>
+            <label for="subjectLevel" class="block text-sm font-medium mb-1"
+              >Subject</label
+            >
+            <select
+              id="subjectLevel"
+              name="subject_Level"
+              class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+              required
+            >
+              <option value="" disabled selected>Select subject</option>
+            </select>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onclick="closeClassModal()"
+              class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+<!-- Teachers Modal -->
+<div
+  id="teacherModal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
+>
+  <div
+    class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-4 sm:p-6 relative max-h-[90vh] overflow-hidden flex flex-col"
+  >
+    <!-- Close Button -->
+    <button
+      id="closeModal"
+      class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold z-10"
+    >
+      ×
+    </button>
+
+    <h2
+      class="text-xl sm:text-2xl font-bold mb-4 text-purple-600 flex items-center gap-2"
+    >
+      <span class="material-symbols-outlined">groups</span>
+      Teachers List
+    </h2>
+
+    <!-- Scrollable Table Container -->
+    <div class="overflow-y-auto custom-scrollbar flex-1 max-h-[500px]">
+      <table class="min-w-full border border-gray-300 rounded-lg">
+        <thead class="bg-purple-100 sticky top-0">
+          <tr>
+            <th class="py-2 px-3 border-b text-left text-sm">Photo</th>
+            <th class="py-2 px-3 border-b text-left text-sm">Name</th>
+            <th class="py-2 px-3 border-b text-left text-sm">Teacher ID</th>
+            <th class="py-2 px-3 border-b text-left text-sm">Email</th>
+            <th class="py-2 px-3 border-b text-left text-sm">Age</th>
+            <th class="py-2 px-3 border-b text-left text-sm">Gender</th>
+            <th class="py-2 px-3 border-b text-left text-sm">Classes</th>
+            <th class="py-2 px-3 border-b text-center text-sm">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="teacherTableBody" class="divide-y divide-gray-200 bg-white"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+    <!-- Edit Teacher Modal -->
+    <div
+      id="editTeacherModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-11/12 md:w-1/2 p-6 relative">
+        <button
+          id="closeEditModal"
+          class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold"
+        >
+          ×
+        </button>
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Edit Teacher</h2>
+
+        <form id="editTeacherForm" class="space-y-3">
+          <input type="hidden" id="editTeacherId" />
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Name</label>
+            <input
+              id="editName"
+              type="text"
+              class="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              id="editEmail"
+              type="email"
+              class="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700"
+              >Gender</label
+            >
+            <select id="editGender" class="w-full border rounded px-3 py-2">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700"
+              >Contact Info</label
+            >
+            <input
+              id="editContact"
+              type="text"
+              class="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700"
+              >Assigned Classes</label
+            >
+            <textarea
+              id="editClasses"
+              rows="3"
+              class="w-full border rounded px-3 py-2"
+            ></textarea>
+          </div>
+
+          <div class="flex justify-end space-x-2 mt-4">
+            <button
+              type="button"
+              id="cancelEditBtn"
+              class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+<div
+  id="studentsModal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+>
+  <div
+    class="bg-white w-full max-w-6xl rounded-lg shadow-lg p-4 sm:p-6 relative max-h-[90vh] overflow-hidden flex flex-col"
+  >
+    <!-- Close button -->
+    <button
+      id="closeStudentsModal"
+      class="absolute top-3 right-3 text-gray-700 hover:text-gray-900 font-bold text-xl"
+    >
+      &times;
+    </button>
+
+    <h2 class="text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined">school</span>
+      Students List
+    </h2>
+
+    <!-- Student count -->
+    <p id="studentsCount" class="mb-4 text-gray-700 font-medium"></p>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-1">Filter by Section</label>
+      <select
+        name="section_Level"
+        id="Section_level"
+        class="w-full sm:w-64 border border-gray-300 rounded-lg p-2"
+      ></select>
+    </div>
+
+    <!-- Scrollable table container -->
+    <div class="overflow-auto custom-scrollbar flex-1" style="max-height: 400px;">
+      <table class="w-full border-collapse border">
+        <thead class="bg-gray-100 sticky top-0">
+          <tr>
+            <th class="border p-2 text-sm">Photo</th>
+            <th class="border p-2 text-sm">Student ID</th>
+            <th class="border p-2 text-sm">Name</th>
+            <th class="border p-2 text-sm">Grade & Section</th>
+            <th class="border p-2 text-sm">Email</th>
+            <th class="border p-2 text-sm">Gender</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTableBody">
+          <!-- Students will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+    <!-- Terms & Conditions Modal -->
+    <div
+      id="termsModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
+        <h2 class="text-lg font-bold mb-4">
+          Terms & Conditions - Facial Encodings
+        </h2>
+        <p class="mb-4 text-gray-700 text-sm">
+          By proceeding, you agree that this student’s facial data will be
+          captured and stored for identification purposes. The data will be
+          securely stored and only used for authorized recognition in
+          school-related activities.
+        </p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            id="declineTerms"
+            class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+          >
+            Decline
+          </button>
+          <button
+            type="button"
+            id="acceptTerms"
+            class="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+          >
+            Accept
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Settings Modal -->
+    <div
+      id="systemSettingsModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl relative flex flex-col" style="max-height: 90vh;">
+        <button
+          id="closeSettingsModal"
+          class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold z-10"
+        >
+          ×
+        </button>
+        
+        <div class="p-6 border-b" style="flex-shrink: 0;">
+          <h2 class="text-2xl font-bold text-orange-600 flex items-center gap-2">
+            <span class="material-symbols-outlined">settings</span>
+            System Settings
+          </h2>
+        </div>
+
+        <div id="settingsNotification" class="hidden mx-6 mt-4 p-3 rounded-lg"></div>
+
+        <div class="p-6 custom-scrollbar" style="flex: 1; overflow-y: auto; overflow-x: hidden;">
+          <form id="systemSettingsForm" class="space-y-6">
+          <!-- School Information Section -->
+          <div class="border-b pb-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">School Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium mb-1">School Name</label>
+                <input
+                  type="text"
+                  id="schoolName"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                  required
+                />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium mb-1">School Address</label>
+                <input
+                  type="text"
+                  id="schoolAddress"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Contact Number</label>
+                <input
+                  type="text"
+                  id="schoolContact"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  id="schoolEmail"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Academic Year Section -->
+          <div class="border-b pb-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Academic Year</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Academic Year</label>
+                <input
+                  type="text"
+                  id="academicYear"
+                  placeholder="2025-2026"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Current Term/Semester</label>
+                <input
+                  type="text"
+                  id="currentTerm"
+                  placeholder="1st Semester"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Grade Configuration Section -->
+          <div class="border-b pb-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Grade Configuration</h3>
+            <p class="text-sm text-gray-600 mb-4">Configure grade levels and their corresponding sections and subjects. Changes will update all dropdowns system-wide.</p>
+            
+            <!-- Grade Levels -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Grade Levels <span class="text-red-500">*</span></label>
+              <p class="text-xs text-gray-500 mb-2">Add all grade levels your school offers (e.g., 7, 8, 9, 10, 11, 12)</p>
+              <div id="gradeLevelsList" class="space-y-2"></div>
+              <button
+                type="button"
+                id="addGradeBtn"
+                class="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+              >
+                + Add Grade Level
+              </button>
+            </div>
+
+            <!-- Sections by Grade -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Sections by Grade</label>
+              <p class="text-xs text-gray-500 mb-2">Define section names for each grade (e.g., Newton, Einstein, ABM, STEM)</p>
+              <div id="sectionsList" class="space-y-3"></div>
+            </div>
+
+            <!-- Subjects by Grade -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Subjects by Grade</label>
+              <p class="text-xs text-gray-500 mb-2">Add subjects taught in each grade level (e.g., Math, Science, English)</p>
+              <div id="subjectsList" class="space-y-3"></div>
+            </div>
+          </div>
+
+          <!-- Default Formula Weights Section -->
+          <div class="border-b pb-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Default Scoring Formula</h3>
+            <p class="text-sm text-gray-600 mb-4">Set the default calculation formula for student performance. Final score = (Scores × Score %) + (Attendance × Attendance %). Must total 100%.</p>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1">
+                    Score Weight: <span id="scoreWeightDisplay" class="font-bold text-blue-600">70%</span>
+                  </label>
+                  <input
+                    type="range"
+                    id="defaultScoreWeight"
+                    min="0"
+                    max="100"
+                    value="70"
+                    class="w-full"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">How much scores contribute to final grade</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">
+                    Attendance Weight: <span id="attendanceWeightDisplay" class="font-bold text-blue-600">30%</span>
+                  </label>
+                  <input
+                    type="range"
+                    id="defaultAttendanceWeight"
+                    min="0"
+                    max="100"
+                    value="30"
+                    class="w-full"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">How much attendance contributes to final grade</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 bg-blue-50 p-3 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="allowTeacherOverride"
+                  class="w-4 h-4"
+                />
+                <label for="allowTeacherOverride" class="text-sm">
+                  <span class="font-medium">Allow teachers to customize their own formula</span>
+                  <span class="block text-xs text-gray-600">Teachers can adjust weights in their dashboard settings</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Preferences Section -->
+          <div class="pb-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">System Preferences</h3>
+            <p class="text-sm text-gray-600 mb-4">Define system-wide academic standards and requirements.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Minimum Attendance %</label>
+                <input
+                  type="number"
+                  id="minimumAttendance"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                />
+                <p class="text-xs text-gray-500 mt-1">Required attendance to pass</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Passing Grade</label>
+                <input
+                  type="number"
+                  id="passingGrade"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                />
+                <p class="text-xs text-gray-500 mt-1">Minimum grade to pass</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Honor Roll Grade</label>
+                <input
+                  type="number"
+                  id="honorRollGrade"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
+                />
+                <p class="text-xs text-gray-500 mt-1">Grade for honor roll status</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex justify-end gap-3 pt-4 border-t">
+            <button
+              type="button"
+              id="cancelSettingsBtn"
+              class="px-6 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors font-medium"
+            >
+              Save Settings
+            </button>
+          </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/adminJS.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin-settings.js') }}"></script>
+    
+    <!-- Virtual Keyboard JS -->
+    <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}"></script>
+  </body>
+</html>

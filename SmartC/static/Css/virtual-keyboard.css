@@ -1,0 +1,229 @@
+/* Virtual On-Screen Keyboard Styles - iPhone Style */
+.virtual-keyboard-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #d1d5db;
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
+    padding: 8px 4px 20px 4px;
+    z-index: 9999;
+    display: none;
+    animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.virtual-keyboard-container.show {
+    display: block;
+}
+
+.keyboard-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 6px;
+    padding: 0 8px;
+}
+
+.keyboard-title {
+    display: none;
+}
+
+.keyboard-close-btn {
+    background: #fff;
+    border: none;
+    color: #555;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.keyboard-close-btn:hover {
+    background: #e5e5e5;
+}
+
+.keyboard-keys {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 4px;
+}
+
+.keyboard-row {
+    display: flex;
+    justify-content: stretch;
+    gap: 6px;
+    width: 100%;
+}
+
+.keyboard-key {
+    background: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 0;
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    font-size: 24px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: background 0.1s;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.keyboard-key:hover {
+    background: #f5f5f5;
+}
+
+.keyboard-key:active {
+    background: #d4d4d4;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.keyboard-key.special {
+    background: #acb4bc;
+    color: #000;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.keyboard-key.special:hover {
+    background: #9ba3ab;
+}
+
+.keyboard-key.special:active {
+    background: #8a9299;
+}
+
+.keyboard-key.space {
+    flex: 4;
+}
+
+.keyboard-key.caps,
+.keyboard-key.shift {
+    flex: 1;
+    max-width: 60px;
+}
+
+.keyboard-key.tab {
+    flex: 1;
+    max-width: 60px;
+}
+
+.keyboard-key.backspace,
+.keyboard-key.enter {
+    flex: 1.5;
+}
+
+.keyboard-key.special {
+    flex: 1;
+    font-size: 16px;
+}
+
+.keyboard-key.active {
+    background: #fff;
+    color: #000;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .virtual-keyboard-container {
+        padding: 6px 3px 16px 3px;
+    }
+    
+    .keyboard-header {
+        margin-bottom: 5px;
+        padding: 0 6px;
+    }
+    
+    .keyboard-close-btn {
+        width: 34px;
+        height: 34px;
+    }
+    
+    .keyboard-key {
+        height: 44px;
+        font-size: 22px;
+    }
+    
+    .keyboard-keys {
+        gap: 6px;
+        padding: 0 3px;
+    }
+    
+    .keyboard-row {
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .virtual-keyboard-container {
+        padding: 4px 2px 12px 2px;
+    }
+    
+    .keyboard-header {
+        margin-bottom: 4px;
+        padding: 0 4px;
+    }
+    
+    .keyboard-close-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+    }
+    
+    .keyboard-key {
+        height: 42px;
+        font-size: 20px;
+    }
+    
+    .keyboard-row {
+        gap: 4px;
+    }
+    
+    .keyboard-keys {
+        gap: 5px;
+        padding: 0 2px;
+    }
+    
+    .keyboard-key.special {
+        font-size: 14px;
+    }
+    
+    .keyboard-key.shift {
+        font-size: 18px;
+    }
+}
+
+/* Input field highlight when keyboard is active */
+.keyboard-active-input {
+    outline: 2px solid #007AFF !important;
+    outline-offset: 1px;
+    border-color: #007AFF !important;
+}

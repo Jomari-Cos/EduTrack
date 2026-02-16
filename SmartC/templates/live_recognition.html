@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Face Recognition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navbar -->
+    <nav class="bg-white p-4 shadow">
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-semibold">Live Face Recognition</h1>
+            <div class="flex gap-2">
+                <button id="startRecognition" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    Start Recognition
+                </button>
+                <button id="stopRecognition" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    Stop Recognition
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Back to Dashboard
+                </a>
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+                    Admin Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="p-6">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-lg font-bold mb-4">Live Camera Feed with Face Recognition</h2>
+            <div class="border-2 border-gray-300 rounded-lg overflow-hidden mb-4">
+                <img id="cameraFeed" src="{{ url_for('video_feed') }}" alt="Live Camera Feed" class="w-full max-w-4xl mx-auto">
+            </div>
+            <div id="recognitionStatus" class="mt-4 p-4 bg-gray-100 rounded-lg">
+                <p class="text-gray-600">Face recognition is <span id="statusText" class="font-semibold text-red-600">stopped</span></p>
+                <p class="text-sm text-gray-500 mt-2">Click 'Start Recognition' to begin face detection and recognition</p>
+            </div>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-green-100 p-4 rounded-lg">
+                    <h3 class="font-semibold text-green-800">✅ Recognized Faces</h3>
+                    <p class="text-sm text-green-600">Will show student names with green boxes</p>
+                </div>
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <h3 class="font-semibold text-blue-800">🔍 DeepFace Detection</h3>
+                    <p class="text-sm text-blue-600">Uses AI for advanced face analysis</p>
+                </div>
+                <div class="bg-red-100 p-4 rounded-lg">
+                    <h3 class="font-semibold text-red-800">❌ Unknown Faces</h3>
+                    <p class="text-sm text-red-600">Faces not in the system will be marked</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('startRecognition').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/start_face_recognition');
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('statusText').textContent = 'active';
+                    document.getElementById('statusText').classList.remove('text-red-600');
+                    document.getElementById('statusText').classList.add('text-green-600');
+                    alert('✅ Face recognition started! The system will now detect and recognize faces.');
+                }
+            } catch (error) {
+                console.error('Error starting recognition:', error);
+                alert('❌ Error starting face recognition');
+            }
+        });
+
+        document.getElementById('stopRecognition').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/stop_face_recognition');
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('statusText').textContent = 'stopped';
+                    document.getElementById('statusText').classList.remove('text-green-600');
+                    document.getElementById('statusText').classList.add('text-red-600');
+                    alert('🛑 Face recognition stopped!');
+                }
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+                alert('❌ Error stopping face recognition');
+            }
+        });
+    </script>
+</body>
+</html>

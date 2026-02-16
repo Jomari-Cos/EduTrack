@@ -1,0 +1,34 @@
+<header class="w-full bg-white shadow-md">
+  <div class="max-w-screen-xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <!-- Left Section -->
+    <div>
+      <h1 class="text-xl font-bold text-blue-600">SmartClassroom</h1>
+      <nav class="text-sm text-gray-500 mt-1">
+        <ol class="list-reset flex items-center space-x-2">
+          <li><button data-panel="dashboard" class="hover:text-blue-600">Dashboard</button></li>
+          <li>/</li>
+          <li><button data-panel="live" class="hover:text-blue-600">Live Monitoring</button></li>
+          <li>/</li>
+          <li><button data-panel="reports" class="hover:text-blue-600">Reports</button></li>
+        </ol>
+      </nav>
+    </div>
+
+    <!-- Right Section -->
+    <div class="flex items-center space-x-6">
+      <button id="logout-btn" class="flex items-center gap-2 px-4 py-2 rounded-xl 
+             bg-white/20 backdrop-blur-md border border-white/30 text-red-600 font-semibold
+             hover:bg-white/30 hover:text-red-700 transition-all duration-200">
+        <span class="material-symbols-outlined text-base">logout</span>
+        Logout
+      </button>
+
+      <button id="fullscreen-btn" class="px-3 py-2 rounded-md bg-gray-700 text-white hover:bg-gray-800 transition">
+        ⛶
+      </button>
+      <button id="openStudentsModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        View Raised Hands
+      </button>
+    </div>
+  </div>
+</header>

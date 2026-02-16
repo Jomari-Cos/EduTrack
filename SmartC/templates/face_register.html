@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Person - Face Recognition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #f9fafb;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1f2937;
+        }
+        
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+        
+        .video-container {
+            position: relative;
+            background: black;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 500px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            filter: brightness(1.05);
+        }
+        
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+        
+        .progress-bar {
+            height: 25px;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #e5e7eb;
+        }
+        
+        .guideline {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: none;
+            color: white;
+        }
+        
+        .guideline h4, .guideline p {
+            color: white;
+        }
+        
+        .guideline .text-light {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            border: none;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        
+        .btn-outline-primary {
+            border: 1px solid #1e40af;
+            color: #1e40af;
+            transition: all 0.2s;
+        }
+        
+        .btn-outline-primary:hover {
+            background: #1e40af;
+            color: white;
+        }
+        
+        .btn-outline-light {
+            border: 1px solid #d1d5db;
+            color: #1f2937;
+        }
+        
+        .btn-outline-light:hover {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+        
+        .btn-warning {
+            background: #d97706;
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-warning:hover {
+            background: #b45309;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #059669;
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-success:hover {
+            background: #047857;
+            transform: translateY(-2px);
+        }
+        
+        .angle-indicator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 10px 0;
+            text-align: center;
+            transition: all 0.5s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            color: white;
+        }
+        
+        .front { 
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border: 2px solid #059669;
+        }
+        
+        .left { 
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            border: 2px solid #1e40af;
+        }
+        
+        .right { 
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            border: 2px solid #d97706;
+        }
+        
+        .instruction-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .instruction-card h5, .instruction-card h6 {
+            color: #111827;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .sample-counter {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            color: #1e40af;
+        }
+        
+        .icon-large {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #1e40af;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .bounce {
+            animation: bounce 1s infinite alternate;
+        }
+        
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        
+        .face-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px dashed rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .target-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 0, 0, 0.8);
+            border-radius: 50%;
+            z-index: 6;
+            pointer-events: none;
+        }
+        
+        .arrow {
+            position: absolute;
+            top: 50%;
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.8);
+            z-index: 7;
+            pointer-events: none;
+            animation: arrowFloat 1.5s infinite alternate;
+        }
+        
+        @keyframes arrowFloat {
+            0% { transform: translateX(0); opacity: 0.5; }
+            100% { transform: translateX(20px); opacity: 1; }
+        }
+        
+        .left-arrow {
+            left: 25%;
+        }
+        
+        .right-arrow {
+            right: 25%;
+        }
+        
+        .face-position-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 64, 175, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 8;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .success-badge {
+            background: #059669;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            font-weight: 600;
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .dot-green { background: #059669; }
+        .dot-red { background: #dc2626; }
+        .dot-yellow { background: #d97706; }
+        
+        .section-badge {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            font-weight: 600;
+        }
+        
+        .id-badge {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            font-weight: 600;
+        }
+        
+        .id-availability {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+        }
+        
+        .available {
+            background-color: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .unavailable {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .checking {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        
+        .disclaimer-required {
+            border: 2px solid #d97706 !important;
+            background-color: rgba(217, 119, 6, 0.05) !important;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: 1px solid;
+        }
+        
+        .alert-success {
+            background-color: #dcfce7;
+            color: #15803d;
+            border-color: #bbf7d0;
+        }
+        
+        .alert-light {
+            background-color: #f9fafb;
+            border-color: #e5e7eb;
+            color: #1f2937;
+        }
+        
+        .form-control {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus {
+            border-color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+            outline: none;
+        }
+        
+        .form-select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            transition: all 0.2s;
+        }
+        
+        .form-select:focus {
+            border-color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+            outline: none;
+        }
+        
+        .form-check-input {
+            border: 1px solid #d1d5db;
+            width: 1.25em;
+            height: 1.25em;
+        }
+        
+        .form-check-input:checked {
+            background-color: #1e40af;
+            border-color: #1e40af;
+        }
+        
+        .form-label {
+            color: #1f2937;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .text-muted {
+            color: #9ca3af !important;
+        }
+        
+        .text-light {
+            color: #9ca3af !important;
+        }
+        
+        .text-success {
+            color: #059669 !important;
+        }
+        
+        .text-primary {
+            color: #1e40af !important;
+        }
+        
+        .text-info {
+            color: #0891b2 !important;
+        }
+        
+        .text-warning {
+            color: #d97706 !important;
+        }
+        
+        .input-group-text {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            color: #6b7280;
+        }
+        
+        .border-warning {
+            border-color: #d97706 !important;
+        }
+        
+        .display-1 {
+            color: #059669;
+        }
+        
+        h1, h2, h4, h5, h6 {
+            color: #111827;
+            font-weight: 600;
+        }
+        
+        .progress {
+            background-color: #e5e7eb;
+            border-radius: 8px;
+            height: 8px;
+        }
+        
+        .border {
+            border-color: #e5e7eb !important;
+        }
+        
+        .border-rounded {
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-xl-10">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">
+                            <i class="fas fa-user-plus me-2"></i>Register New Person
+                        </h1>
+                        <a href="/" class="btn btn-outline-light">
+                            <i class="fas fa-home me-2"></i>Back to Home
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-warning mb-4">
+    <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Important Notice</h5>
+    <p class="mb-0">
+        <strong>Face Recognition Disclaimer:</strong> By registering with our face recognition system, you consent to the collection and processing of your facial data for identification purposes. This data will be stored securely and used only for authorized access control and attendance tracking. Your privacy is important to us, and your data will not be shared with third parties without your explicit consent.
+    </p>
+</div>
+                    <!-- Step 1: Enter Information -->
+                    <div id="step1" class="mb-4">
+                        <div class="guideline">
+                            <h4><i class="fas fa-info-circle me-2"></i>Step 1: Enter Information</h4>
+                            <p class="text-light mb-0">Enter the person's details including unique ID number. We'll capture face samples from multiple angles for better accuracy.</p>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-user me-2"></i>Person Details</h5>
+                                    <div class="mb-3">
+                                        <label for="personName" class="form-label">Full Name *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                            <input type="text" class="form-control form-control-lg" 
+                                                   id="personName" placeholder="Enter person's full name" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="idNumber" class="form-label">Unique ID Number *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                            <input type="text" class="form-control form-control-lg" 
+                                                   id="idNumber" placeholder="Enter unique ID (e.g., STU001)" required
+                                                   pattern="[A-Za-z0-9\-_]{3,20}" 
+                                                   title="3-20 alphanumeric characters (dash and underscore allowed)">
+                                            <button class="btn btn-outline-primary" type="button" id="checkIdBtn">
+                                                <i class="fas fa-check"></i> Check
+                                            </button>
+                                        </div>
+                                        <div id="idAvailability" class="id-availability" style="display: none;"></div>
+                                        <div class="form-text">Must be unique across all sections (e.g., EMP001, STU2024)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-users me-2"></i>Section Selection</h5>
+                                    <div class="mb-3">
+                                        <label for="sectionSelect" class="form-label">Select Section/Class *</label>
+                                        <select class="form-select form-select-lg" id="sectionSelect" required>
+                                            <option value="" selected disabled>Choose a section...</option>
+                                            <!-- Options will be populated by JavaScript -->
+                                        </select>
+                                        <div class="form-text">Each person belongs to a specific section for optimized recognition</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="newSectionCheckbox">
+                                            <label class="form-check-label" for="newSectionCheckbox">
+                                                Create new section
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="newSectionInput" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="newSectionName" class="form-label">New Section Name</label>
+                                            <input type="text" class="form-control" id="newSectionName" 
+                                                   placeholder="Enter new section name (e.g., Apple, Banana)">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-cog me-2"></i>Registration Settings</h5>
+                                    <div class="mb-3">
+                                        <label for="samplesPerAngle" class="form-label">Samples per Angle</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-camera"></i></span>
+                                            <input type="number" class="form-control form-control-lg" 
+                                                   id="samplesPerAngle" value="5" min="3" max="10">
+                                        </div>
+                                        <div class="form-text">More samples = better accuracy (3-10 recommended)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-lightbulb me-2"></i>Tips for Best Results</h5>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success me-2"></i>Ensure good lighting</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Face the camera directly</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Remove glasses if possible</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Keep a neutral expression</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-light border-warning mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="disclaimerCheckbox" required>
+                    <label class="form-check-label" for="disclaimerCheckbox">
+                        <strong>I agree to the Face Recognition Terms:</strong> I understand that my facial data will be collected, stored, and used for identification purposes in accordance with the privacy policy. I consent to this processing of my biometric data.
+                    </label>
+                </div>
+            </div>
+                                    <div class="text-center mt-4">
+                            <button id="startRegistration" class="btn btn-primary btn-lg" disabled>
+                                <i class="fas fa-play-circle me-2"></i>Start Registration Process
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Registration Process -->
+                    <div id="step2" style="display: none;">
+                        <div class="guideline">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h4><i class="fas fa-video me-2"></i>Registration Process</h4>
+                                    <p class="text-light mb-0">Follow the on-screen instructions and position your face according to the guidelines.</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center justify-content-end">
+                                        <span class="status-dot dot-green"></span>
+                                        <span id="statusText" class="text-light me-3">Ready to capture</span>
+                                        <span id="sectionInfo" class="section-badge">Section: Loading...</span>
+                                        <span id="idInfo" class="id-badge ms-2">ID: Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-lg-8 mb-4">
+                                <div class="video-container">
+                                    <!-- Camera feed -->
+                                    <video id="video" width="100%" height="100%" autoplay></video>
+                                    
+                                    <!-- Drawing overlay -->
+                                    <canvas id="overlay"></canvas>
+                                    
+                                    <!-- Face guides -->
+                                    <div class="face-guide" id="faceGuide">
+                                        <!-- This will contain animated guides -->
+                                    </div>
+                                    
+                                    <!-- Center alignment guides -->
+                                    <div class="center-circle"></div>
+                                    <div class="target-dot"></div>
+                                    
+                                    <!-- Direction arrows -->
+                                    <div class="arrow left-arrow" id="leftArrow" style="display: none;">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </div>
+                                    <div class="arrow right-arrow" id="rightArrow" style="display: none;">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                    
+                                    <!-- Position indicator -->
+                                    <div class="face-position-indicator" id="positionIndicator">
+                                        <i class="fas fa-check-circle me-2"></i>Face Position: Good
+                                    </div>
+                                </div>
+                                
+                                <div class="row text-center mt-3">
+                                    <div class="col-md-4 mb-2">
+                                        <button id="captureBtn" class="btn btn-primary btn-lg w-100">
+                                            <i class="fas fa-camera me-2"></i>📸 Capture Sample
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <button id="nextAngleBtn" class="btn btn-warning btn-lg w-100" disabled>
+                                            <i class="fas fa-arrow-right me-2"></i>Next Angle
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <button id="cancelBtn" class="btn btn-outline-light btn-lg w-100">
+                                            <i class="fas fa-times me-2"></i>Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <!-- Person Info Display -->
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-id-card me-2"></i>Person Information</h5>
+                                    <div class="mb-3">
+                                        <p><strong>Name:</strong> <span id="displayName" class="text-primary">-</span></p>
+                                        <p><strong>ID Number:</strong> <span id="displayId" class="text-success">-</span></p>
+                                        <p><strong>Section:</strong> <span id="displaySection" class="text-info">-</span></p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Current Angle Display -->
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-compass me-2"></i>Current Angle</h5>
+                                    <div id="angleIndicator" class="angle-indicator front pulse">
+                                        <i class="fas fa-user me-2"></i>FRONT VIEW
+                                    </div>
+                                    
+                                    <div class="text-center mt-3">
+                                        <div class="sample-counter">
+                                            <span id="angleSamples">0</span>/<span id="totalAngleSamples">5</span>
+                                        </div>
+                                        <p class="text-muted">Samples collected for this angle</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress -->
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-chart-line me-2"></i>Registration Progress</h5>
+                                    
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small>Angle Progress</small>
+                                            <small><span id="anglePercent">0</span>%</small>
+                                        </div>
+                                        <div class="progress">
+                                            <div id="angleProgress" class="progress-bar bg-success" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small>Total Progress</small>
+                                            <small><span id="totalPercent">0</span>%</small>
+                                        </div>
+                                        <div class="progress">
+                                            <div id="totalProgress" class="progress-bar bg-info" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="p-3 border rounded">
+                                                <div class="icon-large text-success">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                                <div id="frontCount" class="h5 mb-0">0</div>
+                                                <small>Front</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="p-3 border rounded">
+                                                <div class="icon-large text-primary">
+                                                    <i class="fas fa-arrow-left"></i>
+                                                </div>
+                                                <div id="leftCount" class="h5 mb-0">0</div>
+                                                <small>Left</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="p-3 border rounded">
+                                                <div class="icon-large text-warning">
+                                                    <i class="fas fa-arrow-right"></i>
+                                                </div>
+                                                <div id="rightCount" class="h5 mb-0">0</div>
+                                                <small>Right</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Instructions -->
+                                <div class="instruction-card">
+                                    <h5><i class="fas fa-graduation-cap me-2"></i>Instructions</h5>
+                                    <div id="instructions">
+                                        <p class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Position your face inside the circle</p>
+                                        <p class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Look straight at the camera</p>
+                                        <p class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Ensure good lighting on your face</p>
+                                        <p class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Keep a neutral expression</p>
+                                    </div>
+                                    
+                                    <div class="alert alert-success mt-3" role="alert" id="successAlert" style="display: none;">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <span id="successMessage">Sample captured successfully!</span>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <button id="finishBtn" class="btn btn-success btn-lg w-100 mb-2" disabled>
+                                            <i class="fas fa-check-circle me-2"></i>Finish Registration
+                                        </button>
+                                        <p class="text-muted small text-center">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Finish after completing all three angles
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Completion -->
+                    <div id="step3" style="display: none;">
+                        <div class="text-center py-5">
+                            <div class="display-1 text-success mb-3">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h2 class="mb-3">Registration Complete!</h2>
+                            <div class="alert alert-success col-md-8 mx-auto">
+                                <h5 id="completionMessage">Successfully registered [Name] (ID: [ID]) with 15 samples.</h5>
+                                <p class="mb-0 mt-2">
+                                    <i class="fas fa-id-card me-2"></i>
+                                    The person has been added to the recognition database.
+                                </p>
+                            </div>
+                            <div class="row justify-content-center mt-4">
+                                <div class="col-md-8">
+                                    <div class="instruction-card text-start">
+                                        <h5><i class="fas fa-database me-2"></i>Registration Summary</h5>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <p class="mb-1"><strong>Name:</strong></p>
+                                                <p class="mb-1"><strong>ID Number:</strong></p>
+                                                <p class="mb-1"><strong>Section:</strong></p>
+                                                <p class="mb-1"><strong>Total Samples:</strong></p>
+                                                <p class="mb-1"><strong>Front Samples:</strong></p>
+                                                <p class="mb-0"><strong>Registration Time:</strong></p>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <p class="mb-1" id="summaryName">-</p>
+                                                <p class="mb-1" id="summaryId">-</p>
+                                                <p class="mb-1" id="summarySection">-</p>
+                                                <p class="mb-1" id="summaryTotal">0</p>
+                                                <p class="mb-1" id="summaryFront">0</p>
+                                                <p class="mb-0" id="summaryTime">-</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-5">
+                                <a href="/register" class="btn btn-primary btn-lg me-3">
+                                    <i class="fas fa-user-plus me-2"></i>Register Another Person
+                                </a>
+                                <a href="/recognize" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-search me-2"></i>Test Recognition
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let registrationSession = null;
+        let currentAngle = 'front';
+        let angleSamples = 0;
+        let totalSamples = 0;
+        let samplesPerAngle = 5;
+        let isProcessing = false;
+        let currentStream = null;
+        let currentSection = '';
+        let currentIdNumber = '';
+        let currentPersonName = '';
+        let isIdAvailable = false;
+        
+        // DOM Elements
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const startBtn = document.getElementById('startRegistration');
+        const captureBtn = document.getElementById('captureBtn');
+        const nextAngleBtn = document.getElementById('nextAngleBtn');
+        const finishBtn = document.getElementById('finishBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const checkIdBtn = document.getElementById('checkIdBtn');
+        const angleIndicator = document.getElementById('angleIndicator');
+        const angleProgress = document.getElementById('angleProgress');
+        const totalProgress = document.getElementById('totalProgress');
+        const angleSamplesEl = document.getElementById('angleSamples');
+        const totalAngleSamplesEl = document.getElementById('totalAngleSamples');
+        const anglePercentEl = document.getElementById('anglePercent');
+        const totalPercentEl = document.getElementById('totalPercent');
+        const frontCountEl = document.getElementById('frontCount');
+        const leftCountEl = document.getElementById('leftCount');
+        const rightCountEl = document.getElementById('rightCount');
+        const instructions = document.getElementById('instructions');
+        const completionMessage = document.getElementById('completionMessage');
+        const summaryName = document.getElementById('summaryName');
+        const summaryId = document.getElementById('summaryId');
+        const summarySection = document.getElementById('summarySection');
+        const summaryTotal = document.getElementById('summaryTotal');
+        const summaryFront = document.getElementById('summaryFront');
+        const summaryTime = document.getElementById('summaryTime');
+        const successAlert = document.getElementById('successAlert');
+        const successMessage = document.getElementById('successMessage');
+        const statusText = document.getElementById('statusText');
+        const sectionInfo = document.getElementById('sectionInfo');
+        const idInfo = document.getElementById('idInfo');
+        const displayName = document.getElementById('displayName');
+        const displayId = document.getElementById('displayId');
+        const displaySection = document.getElementById('displaySection');
+        const positionIndicator = document.getElementById('positionIndicator');
+        const leftArrow = document.getElementById('leftArrow');
+        const rightArrow = document.getElementById('rightArrow');
+        const idAvailability = document.getElementById('idAvailability');
+        
+        // Load sections
+        async function loadSections() {
+            try {
+                const response = await fetch('/api/sections');
+                const data = await response.json();
+                
+                const sectionSelect = document.getElementById('sectionSelect');
+                sectionSelect.innerHTML = '<option value="" selected disabled>Choose a section...</option>';
+                
+                // Add existing sections
+                data.sections.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section.name;
+                    option.textContent = `${section.name} (${section.person_count} persons)`;
+                    sectionSelect.appendChild(option);
+                });
+                
+                // Add option for new section
+                const newOption = document.createElement('option');
+                newOption.value = "__new__";
+                newOption.textContent = "➕ Create New Section";
+                sectionSelect.appendChild(newOption);
+            } catch (error) {
+                console.error('Error loading sections:', error);
+            }
+        }
+        
+        // Check ID availability
+        async function checkIdAvailability() {
+            const idNumber = document.getElementById('idNumber').value.trim();
+            
+            if (!idNumber) {
+                idAvailability.style.display = 'none';
+                isIdAvailable = false;
+                updateStartButton();
+                return;
+            }
+            
+            // Show checking status
+            idAvailability.textContent = 'Checking availability...';
+            idAvailability.className = 'id-availability checking';
+            idAvailability.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/check_id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_number: idNumber })
+                });
+                
+                const result = await response.json();
+                
+                if (result.available) {
+                    idAvailability.innerHTML = `<i class="fas fa-check-circle me-2"></i>${result.message}`;
+                    idAvailability.className = 'id-availability available';
+                    isIdAvailable = true;
+                } else {
+                    idAvailability.innerHTML = `<i class="fas fa-times-circle me-2"></i>${result.message}`;
+                    idAvailability.className = 'id-availability unavailable';
+                    isIdAvailable = false;
+                }
+            } catch (error) {
+                console.error('Error checking ID availability:', error);
+                idAvailability.textContent = 'Error checking ID availability';
+                idAvailability.className = 'id-availability unavailable';
+                isIdAvailable = false;
+            }
+            
+            updateStartButton();
+        }
+        
+        // Update start button based on form validity
+        function updateStartButton() {
+            const personName = document.getElementById('personName').value.trim();
+            const idNumber = document.getElementById('idNumber').value.trim();
+            const sectionSelect = document.getElementById('sectionSelect');
+            const selectedSection = sectionSelect.value;
+            const disclaimerCheckbox = document.getElementById('disclaimerCheckbox')
+
+            
+                // Check disclaimer checkbox if it exists
+            if (disclaimerCheckbox && !disclaimerCheckbox.checked) {
+                startBtn.disabled = true;
+                return;
+            }
+    
+            // Check if all required fields are filled and ID is available
+            if (personName && idNumber && selectedSection && selectedSection !== '__new__' && isIdAvailable) {
+                startBtn.disabled = false;
+            } else if (selectedSection === '__new__') {
+                // For new section, also need new section name
+                const newSectionName = document.getElementById('newSectionName').value.trim();
+                startBtn.disabled = !(personName && idNumber && newSectionName && isIdAvailable);
+            } else {
+                startBtn.disabled = true;
+            }
+        }
+        
+        // Handle section selection
+        document.getElementById('sectionSelect').addEventListener('change', function() {
+            const newSectionInput = document.getElementById('newSectionInput');
+            const newSectionCheckbox = document.getElementById('newSectionCheckbox');
+            
+            if (this.value === '__new__') {
+                newSectionInput.style.display = 'block';
+                newSectionCheckbox.checked = true;
+            } else {
+                newSectionInput.style.display = 'none';
+                newSectionCheckbox.checked = false;
+            }
+            
+            updateStartButton();
+        });
+        
+        // Handle new section checkbox
+        document.getElementById('newSectionCheckbox').addEventListener('change', function() {
+            const sectionSelect = document.getElementById('sectionSelect');
+            const newSectionInput = document.getElementById('newSectionInput');
+            
+            if (this.checked) {
+                sectionSelect.value = '__new__';
+                newSectionInput.style.display = 'block';
+            } else {
+                sectionSelect.value = '';
+                newSectionInput.style.display = 'none';
+            }
+            
+            updateStartButton();
+        });
+        
+        // Handle input changes
+        document.getElementById('personName').addEventListener('input', updateStartButton);
+        document.getElementById('idNumber').addEventListener('input', function() {
+            updateStartButton();
+            // Clear availability status when ID changes
+            idAvailability.style.display = 'none';
+            isIdAvailable = false;
+        });
+        document.getElementById('newSectionName').addEventListener('input', updateStartButton);
+        document.getElementById('samplesPerAngle').addEventListener('input', updateStartButton);
+        
+        // Check ID button click
+        checkIdBtn.addEventListener('click', checkIdAvailability);
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                // Stop any existing stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
+                const video = document.getElementById('video');
+                
+                // Get camera stream
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+                
+                // Set stream to video element
+                video.srcObject = stream;
+                currentStream = stream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        resizeCanvasToVideo();
+                        resolve();
+                    };
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Camera error:', error);
+                return false;
+            }
+        }
+        
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            
+            const video = document.getElementById('video');
+            if (video) {
+                video.srcObject = null;
+            }
+        }
+        
+        function resizeCanvasToVideo() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('overlay');
+            
+            if (video && canvas && video.videoWidth && video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+        }
+        
+        // Start registration
+        startBtn.addEventListener('click', async () => {
+            const personName = document.getElementById('personName').value.trim();
+            const idNumber = document.getElementById('idNumber').value.trim();
+            const sectionSelect = document.getElementById('sectionSelect');
+            const selectedSection = sectionSelect.value;
+            const newSectionName = document.getElementById('newSectionName').value.trim();
+            samplesPerAngle = parseInt(document.getElementById('samplesPerAngle').value);
+            
+            if (!personName) {
+                alert('Please enter a name');
+                return;
+            }
+            
+            if (!idNumber) {
+                alert('Please enter an ID number');
+                return;
+            }
+            
+            if (!isIdAvailable) {
+                alert('Please check and confirm ID number availability');
+                return;
+            }
+            
+            if (samplesPerAngle < 3 || samplesPerAngle > 10) {
+                alert('Please enter samples per angle between 3 and 10');
+                return;
+            }
+            
+            let sectionName = selectedSection;
+            
+            // Handle new section creation
+            if (selectedSection === '__new__') {
+                if (!newSectionName) {
+                    alert('Please enter a name for the new section');
+                    return;
+                }
+                sectionName = newSectionName;
+                
+                // Create new section
+                try {
+                    const response = await fetch('/api/create_section', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: sectionName })
+                    });
+                    
+                    const result = await response.json();
+                    if (!result.success) {
+                        alert(result.message);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error creating section:', error);
+                    alert('Failed to create new section');
+                    return;
+                }
+            }
+            
+            if (!sectionName || sectionName === '__new__') {
+                alert('Please select or create a section');
+                return;
+            }
+            
+            currentSection = sectionName;
+            currentIdNumber = idNumber;
+            currentPersonName = personName;
+            
+            try {
+                const response = await fetch('/api/start_registration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: personName,
+                        id_number: idNumber,
+                        section: sectionName,
+                        samples_per_angle: samplesPerAngle 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    registrationSession = result.session_id;
+                    currentAngle = result.current_angle;
+                    
+                    // Update UI
+                    step1.style.display = 'none';
+                    step2.style.display = 'block';
+                    updateAngleDisplay();
+                    updateTotalSamples(samplesPerAngle * 3);
+                    
+                    // Update info displays
+                    sectionInfo.textContent = `Section: ${result.section_name}`;
+                    idInfo.textContent = `ID: ${result.id_number}`;
+                    displayName.textContent = result.person_name;
+                    displayId.textContent = result.id_number;
+                    displaySection.textContent = result.section_name;
+                    
+                    // Start camera
+                    const cameraSuccess = await startCamera();
+                    if (!cameraSuccess) {
+                        alert('Could not access camera. Please check permissions.');
+                        step2.style.display = 'none';
+                        step1.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Update status
+                    statusText.textContent = `Registering ${result.person_name} (ID: ${result.id_number})`;
+                    
+                    // Show initial instructions
+                    updateInstructions();
+                    updateArrows();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error starting registration:', error);
+                alert('Failed to start registration');
+            }
+        });
+        
+        // Capture sample
+        captureBtn.addEventListener('click', async () => {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const video = document.getElementById('video');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw video frame to canvas (mirrored)
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, -canvas.width, canvas.height);
+                
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                const response = await fetch('/api/process_registration_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update counters
+                    angleSamples = result.angle_samples;
+                    totalSamples = result.samples_collected;
+                    
+                    // Update progress bars
+                    const anglePercent = (angleSamples / samplesPerAngle) * 100;
+                    angleProgress.style.width = `${anglePercent}%`;
+                    anglePercentEl.textContent = Math.round(anglePercent);
+                    
+                    const totalPercent = (totalSamples / (samplesPerAngle * 3)) * 100;
+                    totalProgress.style.width = `${totalPercent}%`;
+                    totalPercentEl.textContent = Math.round(totalPercent);
+                    
+                    // Update text
+                    angleSamplesEl.textContent = angleSamples;
+                    totalAngleSamplesEl.textContent = samplesPerAngle;
+                    
+                    // Update sample counts
+                    updateSampleCounts();
+                    
+                    // Update instructions based on angle
+                    updateInstructions();
+                    
+                    // Draw bounding box on canvas
+                    if (result.bbox) {
+                        drawBoundingBox(result.bbox, result.landmarks);
+                        
+                        // Show success message
+                        successMessage.textContent = `Sample ${angleSamples}/${samplesPerAngle} captured!`;
+                        successAlert.style.display = 'block';
+                        
+                        // Hide success message after 2 seconds
+                        setTimeout(() => {
+                            successAlert.style.display = 'none';
+                        }, 2000);
+                    }
+                    
+                    // Enable/disable buttons
+                    if (result.angle_complete) {
+                        nextAngleBtn.disabled = false;
+                        captureBtn.disabled = true;
+                        captureBtn.innerHTML = '<i class="fas fa-check me-2"></i>Angle Complete';
+                        
+                        // Update status
+                        statusText.textContent = 'Angle complete - Ready for next angle';
+                        
+                        if (currentAngle === 'right') {
+                            finishBtn.disabled = false;
+                            nextAngleBtn.disabled = true;
+                            nextAngleBtn.textContent = 'All Angles Complete';
+                            statusText.textContent = 'All angles complete - Ready to finish';
+                        }
+                    } else {
+                        captureBtn.innerHTML = `<i class="fas fa-camera me-2"></i>Capture Sample (${angleSamples}/${samplesPerAngle})`;
+                        statusText.textContent = `Captured ${angleSamples}/${samplesPerAngle} for ${currentAngle} view`;
+                    }
+                    
+                    // Update face position indicator
+                    updateFacePositionIndicator(result.bbox);
+                } else {
+                    alert(result.message);
+                    statusText.textContent = 'Error: ' + result.message;
+                }
+            } catch (error) {
+                console.error('Error capturing sample:', error);
+                alert('Failed to capture sample');
+                statusText.textContent = 'Error capturing sample';
+            } finally {
+                isProcessing = false;
+            }
+        });
+        
+        // Next angle
+        nextAngleBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/next_registration_angle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentAngle = result.current_angle;
+                    angleSamples = 0;
+                    
+                    // Reset UI for new angle
+                    updateAngleDisplay();
+                    nextAngleBtn.disabled = true;
+                    captureBtn.disabled = false;
+                    captureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture Sample';
+                    angleProgress.style.width = '0%';
+                    anglePercentEl.textContent = '0';
+                    angleSamplesEl.textContent = '0';
+                    
+                    // Update instructions
+                    updateInstructions();
+                    updateArrows();
+                    
+                    // Clear canvas
+                    const canvas = document.getElementById('overlay');
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Update status
+                    statusText.textContent = `Ready for ${currentAngle} view`;
+                    
+                    // Hide position indicator
+                    positionIndicator.style.display = 'none';
+                    
+                    // Remove pulse animation and re-add it
+                    angleIndicator.classList.remove('pulse');
+                    void angleIndicator.offsetWidth; // Trigger reflow
+                    angleIndicator.classList.add('pulse');
+                } else if (result.all_complete) {
+                    finishBtn.disabled = false;
+                    nextAngleBtn.disabled = true;
+                    nextAngleBtn.textContent = 'All Angles Complete';
+                }
+            } catch (error) {
+                console.error('Error moving to next angle:', error);
+            }
+        });
+        
+        // Finish registration
+        finishBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/finish_registration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show completion screen
+                    step2.style.display = 'none';
+                    step3.style.display = 'block';
+                    
+                    // Update completion message
+                    completionMessage.textContent = 
+                        `Successfully registered ${result.person_name} (ID: ${result.id_number}) with ${result.total_samples} samples in section "${result.section_name}".`;
+                    
+                    // Update summary
+                    summaryName.textContent = result.person_name;
+                    summaryId.textContent = result.id_number;
+                    summarySection.textContent = result.section_name;
+                    summaryTotal.textContent = result.total_samples;
+                    summaryFront.textContent = samplesPerAngle;
+                    summaryTime.textContent = new Date().toLocaleTimeString();
+                    
+                    // Stop camera
+                    stopCamera();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error finishing registration:', error);
+                alert('Failed to finish registration');
+            }
+        });
+        
+        // Cancel registration
+        cancelBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to cancel registration? All progress will be lost.')) {
+                try {
+                    const response = await fetch('/api/cancel_registration', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Reset to step 1
+                        step2.style.display = 'none';
+                        step1.style.display = 'block';
+                        stopCamera();
+                        
+                        // Reset form
+                        isIdAvailable = false;
+                        idAvailability.style.display = 'none';
+                        updateStartButton();
+                    }
+                } catch (error) {
+                    console.error('Error cancelling registration:', error);
+                }
+            }
+        });
+        
+        // Helper functions
+        function updateAngleDisplay() {
+            angleIndicator.textContent = `${currentAngle.toUpperCase()} VIEW`;
+            angleIndicator.className = `angle-indicator ${currentAngle} pulse`;
+            
+            // Update icon
+            let icon = 'fa-user';
+            if (currentAngle === 'left') icon = 'fa-arrow-left';
+            if (currentAngle === 'right') icon = 'fa-arrow-right';
+            angleIndicator.innerHTML = `<i class="fas ${icon} me-2"></i>${currentAngle.toUpperCase()} VIEW`;
+        }
+        
+        function updateTotalSamples(total) {
+            totalAngleSamplesEl.textContent = samplesPerAngle;
+        }
+        
+        function updateSampleCounts() {
+            // This would ideally come from the server, but for now we'll estimate
+            frontCountEl.textContent = currentAngle === 'front' ? angleSamples : 
+                                      (currentAngle === 'left' ? samplesPerAngle : samplesPerAngle);
+            leftCountEl.textContent = currentAngle === 'left' ? angleSamples : 
+                                     (currentAngle === 'right' ? samplesPerAngle : 0);
+            rightCountEl.textContent = currentAngle === 'right' ? angleSamples : 0;
+        }
+        
+        function updateInstructions() {
+            const angleInstructions = {
+                'front': [
+                    '<i class="fas fa-check-circle text-success me-2"></i>Look straight at the camera',
+                    '<i class="fas fa-check-circle text-success me-2"></i>Center your face in the circle',
+                    '<i class="fas fa-lightbulb text-warning me-2"></i>Keep a neutral expression',
+                    '<i class="fas fa-lightbulb text-warning me-2"></i>Ensure face is well-lit'
+                ],
+                'left': [
+                    '<i class="fas fa-arrow-left text-primary me-2"></i>Slowly turn head to YOUR right',
+                    '<i class="fas fa-info-circle text-info me-2"></i>Show left side of face to camera',
+                    '<i class="fas fa-lightbulb text-warning me-2"></i>Turn about 30-45 degrees',
+                    '<i class="fas fa-lightbulb text-warning me-2"></i>Keep eyes visible if possible'
+                ],
+                'right': [
+                    '<i class="fas fa-arrow-right text-warning me-2"></i>Slowly turn head to YOUR left',
+                    '<i class="fas fa-info-circle text-info me-2"></i>Show right side of face to camera',
+                    '<i class="fas fa-lightbulb text-warning me-2"></i>Turn about 30-45 degrees',
+                    '<i class="fas fa-lightbulb text-warning me-2"></i>Keep eyes visible if possible'
+                ]
+            };
+            
+            instructions.innerHTML = angleInstructions[currentAngle].map(instruction => 
+                `<p class="mb-2">${instruction}</p>`
+            ).join('');
+        }
+        
+        function updateArrows() {
+            // Hide both arrows initially
+            leftArrow.style.display = 'none';
+            rightArrow.style.display = 'none';
+            
+            // Show appropriate arrow for current angle
+            if (currentAngle === 'front') {
+                // No arrows for front view
+            } else if (currentAngle === 'left') {
+                // For left view, show arrow pointing left (user turns right)
+                leftArrow.style.display = 'block';
+                leftArrow.innerHTML = '<i class="fas fa-arrow-left"></i>';
+            } else if (currentAngle === 'right') {
+                // For right view, show arrow pointing right (user turns left)
+                rightArrow.style.display = 'block';
+                rightArrow.innerHTML = '<i class="fas fa-arrow-right"></i>';
+            }
+        }
+        
+        function drawBoundingBox(bbox, landmarks) {
+            const canvas = document.getElementById('overlay');
+            const video = document.getElementById('video');
+            
+            if (!canvas || !video) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Clear previous drawings
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset transform
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            
+            // Mirror the canvas to match video
+            ctx.scale(-1, 1);
+            ctx.translate(-canvas.width, 0);
+            
+            // Draw bounding box with color based on angle
+            let boxColor = '#4CAF50'; // Green for front
+            if (currentAngle === 'left') boxColor = '#2196F3'; // Blue for left
+            if (currentAngle === 'right') boxColor = '#FFC107'; // Yellow for right
+            
+            ctx.strokeStyle = boxColor;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+            
+            // Draw landmarks
+            ctx.fillStyle = '#FF5722';
+            if (landmarks && landmarks.length > 0) {
+                landmarks.forEach(point => {
+                    ctx.beginPath();
+                    ctx.arc(point[0], point[1], 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+            
+            // Draw center alignment guides
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Draw crosshair at center
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(centerX - 50, centerY);
+            ctx.lineTo(centerX + 50, centerY);
+            ctx.stroke();
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 50);
+            ctx.lineTo(centerX, centerY + 50);
+            ctx.stroke();
+            
+            // Draw registration info
+            ctx.font = 'bold 16px Arial';
+            
+            // Draw section info
+            const sectionText = `Section: ${currentSection}`;
+            const sectionWidth = ctx.measureText(sectionText).width;
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.8)';
+            ctx.fillRect(10, 10, sectionWidth + 20, 30);
+            ctx.fillStyle = 'white';
+            ctx.fillText(sectionText, 20, 30);
+            
+            // Draw ID info
+            const idText = `ID: ${currentIdNumber}`;
+            const idWidth = ctx.measureText(idText).width;
+            ctx.fillStyle = 'rgba(255, 152, 0, 0.8)';
+            ctx.fillRect(10, 45, idWidth + 20, 30);
+            ctx.fillStyle = 'white';
+            ctx.fillText(idText, 20, 65);
+            
+            // Draw angle info
+            const angleText = `Angle: ${currentAngle.toUpperCase()}`;
+            ctx.fillStyle = boxColor;
+            ctx.fillRect(canvas.width - 200, 10, 190, 30);
+            ctx.fillStyle = 'white';
+            ctx.fillText(angleText, canvas.width - 190, 30);
+            
+            // Reset transform for next frame
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        
+        function updateFacePositionIndicator(bbox) {
+            if (!bbox) {
+                positionIndicator.style.display = 'none';
+                return;
+            }
+            
+            const canvas = document.getElementById('overlay');
+            if (!canvas) return;
+            
+            const faceCenterX = (bbox[0] + bbox[2]) / 2;
+            const faceCenterY = (bbox[1] + bbox[3]) / 2;
+            const canvasCenterX = canvas.width / 2;
+            const canvasCenterY = canvas.height / 2;
+            
+            const distanceX = Math.abs(faceCenterX - canvasCenterX);
+            const distanceY = Math.abs(faceCenterY - canvasCenterY);
+            const maxDistance = 50; // pixels
+            
+            if (distanceX < maxDistance && distanceY < maxDistance) {
+                positionIndicator.innerHTML = '<i class="fas fa-check-circle me-2"></i>Face Position: Perfect!';
+                positionIndicator.style.background = 'rgba(76, 175, 80, 0.8)';
+                positionIndicator.style.display = 'block';
+            } else if (distanceX < maxDistance * 2 && distanceY < maxDistance * 2) {
+                positionIndicator.innerHTML = '<i class="fas fa-info-circle me-2"></i>Face Position: Good';
+                positionIndicator.style.background = 'rgba(33, 150, 243, 0.8)';
+                positionIndicator.style.display = 'block';
+            } else {
+                positionIndicator.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Face Position: Move closer to center';
+                positionIndicator.style.background = 'rgba(244, 67, 54, 0.8)';
+                positionIndicator.style.display = 'block';
+            }
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                positionIndicator.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSections();
+            // Add event listener for disclaimer checkbox
+const disclaimerCheckbox = document.getElementById('disclaimerCheckbox');
+if (disclaimerCheckbox) {
+    disclaimerCheckbox.addEventListener('change', updateStartButton);
+}
+            // Add input validation
+            const personNameInput = document.getElementById('personName');
+            const samplesInput = document.getElementById('samplesPerAngle');
+            const idNumberInput = document.getElementById('idNumber');
+            
+            personNameInput.addEventListener('input', function() {
+                if (this.value.trim().length > 0) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+            
+            idNumberInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value.length >= 3 && /^[A-Za-z0-9\-_]+$/.test(value)) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+            
+            samplesInput.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (value >= 3 && value <= 10) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
+// Get the current URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+
+// Extract individual values
+const name = urlParams.get('name');
+const student_id = urlParams.get('student_id');
+const grade_level = urlParams.get('grade_level');
+const section = urlParams.get('section');
+
+// Use the values
+console.log({
+    name: name,
+    studentId: student_id,
+    gradeLevel: grade_level,
+    section: section
+});
+
+// ======== ADDED CODE STARTS HERE ========
+
+// If name parameter exists, populate personName field
+if (name) {
+    document.getElementById('personName').value = name;
+    // Trigger validation and update start button
+    document.getElementById('personName').dispatchEvent(new Event('input'));
+}
+
+// If student_id parameter exists, populate idNumber field
+if (student_id) {
+    document.getElementById('idNumber').value = student_id;
+    // Trigger validation and update start button
+    document.getElementById('idNumber').dispatchEvent(new Event('input'));
+    
+    // Automatically check ID availability after a short delay
+    // (to ensure sections have loaded first)
+    setTimeout(() => {
+        checkIdAvailability();
+    }, 1000);
+}
+
+// If section parameter exists, try to set it in the dropdown
+if (section) {
+    // Wait for sections to load (2 seconds should be enough)
+    setTimeout(() => {
+        const sectionSelect = document.getElementById('sectionSelect');
+        if (sectionSelect) {
+            // Try to find exact match
+            for (let i = 0; i < sectionSelect.options.length; i++) {
+                const option = sectionSelect.options[i];
+                if (option.value.toLowerCase() === section.toLowerCase()) {
+                    sectionSelect.value = option.value;
+                    sectionSelect.dispatchEvent(new Event('change'));
+                    break;
+                }
+            }
+        }
+    }, 2000);
+}
+
+// Optional: If grade_level exists but not section, you could use it too
+//if (grade_level && !section) {
+  //  console.log(`Grade level provided: ${grade_level}`);
+    // You could implement logic to suggest sections based on grade level
+//}
+
+    </script>
+</body>
+</html>

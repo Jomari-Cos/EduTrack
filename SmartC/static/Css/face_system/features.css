@@ -1,0 +1,157 @@
+#acknowledgeStudentsBtn {
+  padding: 12px 24px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#acknowledgeStudentsBtn:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.close-ack {
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #333;
+}
+
+.close-ack:hover {
+    color: #000;
+}
+
+.student-card {
+    text-align: center;
+}
+
+.student-card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+}
+
+.ack-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.ack-btn:hover {
+    background-color: #45a049;
+}   
+.student-card {
+    transition: all 0.3s ease;
+}
+
+.student-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    background-color: #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.acknowledge-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+/* Add to your existing CSS */
+.student-row:hover {
+    background-color: rgba(33, 150, 243, 0.05) !important;
+    transition: background-color 0.2s ease;
+}
+
+.student-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: white;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.sticky-top {
+    top: 0;
+    z-index: 10;
+}
+
+#studentsTable {
+    font-size: 0.9rem;
+}
+
+#studentsTable th {
+    background-color: #f8f9fa;
+    border-bottom-width: 1px;
+}
+
+.attendance-progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+}
+
+.attendance-progress-bar {
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    #studentsTable {
+        font-size: 0.8rem;
+    }
+    
+    #studentsTable td:nth-child(5),
+    #studentsTable th:nth-child(5),
+    #studentsTable td:nth-child(7),
+    #studentsTable th:nth-child(7) {
+        display: none;
+    }
+}

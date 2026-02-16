@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartClassroom Dashboard</title>
+  
+  <!-- CSS Imports -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/face_recognize.css') }}">
+  
+  {% block extra_css %}{% endblock %}
+  
+  <style>
+    #zoomCanvas { max-width: 100%; max-height: 70vh; }
+    .face-box {
+      position: absolute; border: 2px solid; background: transparent; pointer-events: none;
+    }
+    .face-label {
+      position: absolute; top: -25px; left: 0; background: rgba(0,0,0,0.7);
+      color: white; padding: 2px 6px; font-size: 12px; border-radius: 3px; white-space: nowrap;
+    }
+    .panel { display: block; }
+    .panel.hidden { display: none; }
+  </style>
+</head>
+
+<body class="flex min-h-screen bg-gray-100">
+  {% include 'dashboard/header.html' %}
+  
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    {% block content %}{% endblock %}
+  </main>
+  
+  {% include 'dashboard/modals/attendance_modal.html' %}
+  {% include 'dashboard/modals/points_modal.html' %}
+  {% include 'dashboard/modals/student_modal.html' %}
+  {% include 'dashboard/modals/students_list_modal.html' %}
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  
+  <script src="{{ url_for('static', filename='js/dashboard/utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/navigation.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/dashboard-core.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/attendance.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/teacher-profiles.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/charts-analytics.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/points-system.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/live-monitoring.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/search.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/raised_modal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard/face_recognize.js') }}"></script>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

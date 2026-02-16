@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Enrollment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">🎯 AI Face Enrollment</h1>
+                <a href="/admin" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                    ← Back to Admin
+                </a>
+            </div>
+            <div id="studentInfo" class="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h2 class="text-lg font-semibold">Student Information</h2>
+                <p id="studentDetails" class="text-gray-700">Loading student data...</p>
+            </div>
+        </div>
+
+        <!-- Camera and Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Camera Feed -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">📷 AI Camera Feed</h2>
+                <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-black">
+                    <img id="cameraFeed" src="{{ url_for('admin.face_enrollment_video_feed') }}" 
+                         class="w-full h-auto max-h-96 object-contain" 
+                         alt="Camera Feed">
+                </div>
+                <div class="mt-4 text-center">
+                    <p id="cameraStatus" class="text-sm text-gray-600">Camera status: Initializing...</p>
+                    <div id="faceDetectionInfo" class="mt-2 hidden">
+                        <p id="faceStatus" class="text-sm font-semibold"></p>
+                        <p id="faceConfidence" class="text-xs text-gray-600"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls and Progress -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">⚙️ AI Enrollment Controls</h2>
+                
+                <!-- Progress -->
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium">AI Enrollment Progress</span>
+                        <span id="progressText" class="text-sm font-medium">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div id="progressBar" class="bg-green-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="samplesCount" class="text-sm text-gray-600 mt-2">AI Quality Samples: 0/15</p>
+                    <p id="enrollmentQuality" class="text-sm font-medium mt-1">Face Quality: <span id="qualityValue" class="text-orange-500">Waiting...</span></p>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="statusMessage" class="p-4 rounded-lg mb-4 hidden">
+                    <p id="statusText" class="text-sm"></p>
+                </div>
+
+                <!-- Controls -->
+                <div class="space-y-4">
+                    <button id="startEnrollmentBtn" 
+                            class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                        <span class="material-symbols-outlined mr-2">face</span>
+                        Start AI Face Enrollment
+                    </button>
+
+                    <button id="stopEnrollmentBtn" 
+                            class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center" 
+                            disabled>
+                        <span class="material-symbols-outlined mr-2">stop</span>
+                        Stop AI Enrollment
+                    </button>
+
+                    <button id="completeEnrollmentBtn" 
+                            class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center hidden">
+                        <span class="material-symbols-outlined mr-2">check_circle</span>
+                        Face Recognition Complete - Continue
+                    </button>
+                </div>
+
+                <!-- AI Instructions -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h3 class="font-semibold text-blue-800 mb-2">🤖 AI Instructions:</h3>
+                    <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
+                        <li>Sit in a well-lit area facing the camera</li>
+                        <li>Keep your face centered in the frame</li>
+                        <li>Maintain a neutral expression</li>
+                        <li>The AI will automatically capture 15 high-quality samples</li>
+                        <li>Move your head slightly for better training</li>
+                        <li>AI will analyze face quality in real-time</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Results -->
+        <div id="analysisSection" class="bg-white rounded-lg shadow-md p-6 mt-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">🔍 AI Face Analysis</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <p class="text-2xl font-bold text-green-600" id="totalSamples">0</p>
+                    <p class="text-sm text-green-700">Quality Samples</p>
+                </div>
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <p class="text-2xl font-bold text-blue-600" id="faceQualityScore">0%</p>
+                    <p class="text-sm text-blue-700">Average Quality</p>
+                </div>
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <p class="text-2xl font-bold text-purple-600" id="recognitionConfidence">0%</p>
+                    <p class="text-sm text-purple-700">Recognition Confidence</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Captures -->
+        <div id="capturesSection" class="bg-white rounded-lg shadow-md p-6 mt-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">🖼️ AI Captured Samples</h2>
+            <div id="capturesGrid" class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <!-- AI captured samples will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const startBtn = document.getElementById('startEnrollmentBtn');
+            const stopBtn = document.getElementById('stopEnrollmentBtn');
+            const completeBtn = document.getElementById('completeEnrollmentBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const samplesCount = document.getElementById('samplesCount');
+            const statusMessage = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
+            const cameraStatus = document.getElementById('cameraStatus');
+            const studentDetails = document.getElementById('studentDetails');
+            const capturesSection = document.getElementById('capturesSection');
+            const capturesGrid = document.getElementById('capturesGrid');
+            const analysisSection = document.getElementById('analysisSection');
+            const faceDetectionInfo = document.getElementById('faceDetectionInfo');
+            const faceStatus = document.getElementById('faceStatus');
+            const faceConfidence = document.getElementById('faceConfidence');
+            const qualityValue = document.getElementById('qualityValue');
+            const totalSamples = document.getElementById('totalSamples');
+            const faceQualityScore = document.getElementById('faceQualityScore');
+            const recognitionConfidence = document.getElementById('recognitionConfidence');
+
+            let enrollmentActive = false;
+            let currentSamples = 0;
+            const maxSamples = 15;
+            let studentData = {};
+            let autoCaptureInterval;
+            let qualitySamples = 0;
+
+            // Load student data
+            function loadStudentData() {
+                const sessionData = sessionStorage.getItem('enrollmentStudent');
+                if (sessionData) {
+                    studentData = JSON.parse(sessionData);
+                } else {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    studentData = {
+                        firstName: urlParams.get('first_name') || 'Unknown',
+                        lastName: urlParams.get('last_name') || 'Student',
+                        studentId: urlParams.get('student_id') || 'N/A'
+                    };
+                }
+
+                studentDetails.textContent = 
+                    `Name: ${studentData.firstName} ${studentData.lastName} | ID: ${studentData.studentId}`;
+            }
+
+            // Update progress
+            function updateProgress(samples, quality = 0) {
+                currentSamples = samples;
+                const progress = Math.min(100, (samples / maxSamples) * 100);
+                
+                progressBar.style.width = `${progress}%`;
+                progressText.textContent = `${Math.round(progress)}%`;
+                samplesCount.textContent = `AI Quality Samples: ${samples}/${maxSamples}`;
+                
+                // Update quality display
+                if (quality > 0) {
+                    let qualityColor = 'text-red-500';
+                    let qualityText = 'Poor';
+                    
+                    if (quality >= 80) {
+                        qualityColor = 'text-green-500';
+                        qualityText = 'Excellent';
+                    } else if (quality >= 60) {
+                        qualityColor = 'text-blue-500';
+                        qualityText = 'Good';
+                    } else if (quality >= 40) {
+                        qualityColor = 'text-orange-500';
+                        qualityText = 'Fair';
+                    }
+                    
+                    qualityValue.className = qualityColor;
+                    qualityValue.textContent = `${qualityText} (${Math.round(quality)}%)`;
+                }
+
+                // Show analysis section when samples start
+                if (samples > 0) {
+                    analysisSection.classList.remove('hidden');
+                    totalSamples.textContent = samples;
+                    faceQualityScore.textContent = `${Math.round(quality)}%`;
+                }
+                
+                if (samples >= maxSamples) {
+                    completeEnrollment();
+                }
+            }
+
+            // Show status message
+            function showStatus(message, type = 'info') {
+                statusText.textContent = message;
+                statusMessage.className = `p-4 rounded-lg mb-4`;
+                
+                switch (type) {
+                    case 'success':
+                        statusMessage.classList.add('bg-green-100', 'text-green-800');
+                        break;
+                    case 'error':
+                        statusMessage.classList.add('bg-red-100', 'text-red-800');
+                        break;
+                    case 'warning':
+                        statusMessage.classList.add('bg-yellow-100', 'text-yellow-800');
+                        break;
+                    default:
+                        statusMessage.classList.add('bg-blue-100', 'text-blue-800');
+                }
+                
+                statusMessage.classList.remove('hidden');
+            }
+
+            // Update face detection info
+            function updateFaceDetection(hasFace, confidence = 0, message = '') {
+                if (hasFace) {
+                    faceDetectionInfo.classList.remove('hidden');
+                    faceStatus.textContent = '✅ Face Detected';
+                    faceStatus.className = 'text-sm font-semibold text-green-600';
+                    faceConfidence.textContent = `Confidence: ${Math.round(confidence * 100)}% - ${message}`;
+                } else {
+                    faceDetectionInfo.classList.remove('hidden');
+                    faceStatus.textContent = '❌ No Face Detected';
+                    faceStatus.className = 'text-sm font-semibold text-red-600';
+                    faceConfidence.textContent = 'Please position your face in the camera view';
+                }
+            }
+
+            // Start automatic enrollment
+            startBtn.addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/admin/start-ai-face-enrollment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            student_id: studentData.studentId,
+                            first_name: studentData.firstName,
+                            last_name: studentData.lastName
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        enrollmentActive = true;
+                        startBtn.disabled = true;
+                        stopBtn.disabled = false;
+                        cameraStatus.textContent = 'Camera status: AI Face Detection Active';
+                        showStatus('🤖 AI Face Enrollment Started! The system will automatically capture quality face samples.', 'success');
+                        
+                        // Start automatic capture interval
+                        startAutoCapture();
+                    } else {
+                        showStatus(`❌ Failed to start AI enrollment: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error starting AI enrollment:', error);
+                    showStatus('❌ Network error while starting AI enrollment', 'error');
+                }
+            });
+
+            // Automatic capture function
+            function startAutoCapture() {
+                autoCaptureInterval = setInterval(async () => {
+                    if (!enrollmentActive || currentSamples >= maxSamples) {
+                        clearInterval(autoCaptureInterval);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/admin/auto-capture-face-sample', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        const result = await response.json();
+                        
+                        if (result.success && result.captured) {
+                            updateProgress(result.samples_collected, result.face_quality);
+                            updateFaceDetection(true, result.confidence, result.message);
+                            
+                            // Add to captures grid
+                            if (result.face_quality >= 60) { // Only show good quality samples
+                                addCaptureThumbnail(result.samples_collected, result.face_quality);
+                            }
+                            
+                            // Update recognition confidence
+                            if (result.recognition_confidence) {
+                                recognitionConfidence.textContent = `${Math.round(result.recognition_confidence * 100)}%`;
+                            }
+                            
+                        } else if (result.success && !result.captured) {
+                            updateFaceDetection(result.face_detected, result.confidence, result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error in auto capture:', error);
+                    }
+                }, 1500); // Check every 1.5 seconds
+            }
+
+            // Stop enrollment
+            stopBtn.addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/admin/stop-ai-face-enrollment', {
+                        method: 'POST'
+                    });
+
+                    if (response.ok) {
+                        enrollmentActive = false;
+                        clearInterval(autoCaptureInterval);
+                        resetControls();
+                        showStatus('⏹️ AI Enrollment stopped', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Error stopping AI enrollment:', error);
+                }
+            });
+
+            // Complete enrollment
+            function completeEnrollment() {
+                enrollmentActive = false;
+                clearInterval(autoCaptureInterval);
+                
+                completeBtn.classList.remove('hidden');
+                stopBtn.disabled = true;
+                
+                showStatus('🎉 AI Face Recognition Complete! The system has successfully learned your facial features.', 'success');
+                
+                // Auto-continue after 5 seconds
+                setTimeout(() => {
+                    completeEnrollmentAndContinue();
+                }, 5000);
+            }
+
+            // Complete enrollment and redirect
+            function completeEnrollmentAndContinue() {
+                // Redirect to main application
+                window.location.href = '/';
+            }
+
+            completeBtn.addEventListener('click', completeEnrollmentAndContinue);
+
+            // Add capture thumbnail
+            function addCaptureThumbnail(sampleNumber, quality) {
+                capturesSection.classList.remove('hidden');
+                
+                const captureDiv = document.createElement('div');
+                captureDiv.className = 'text-center';
+                
+                const qualityColor = quality >= 80 ? 'text-green-600' : 
+                                   quality >= 60 ? 'text-blue-600' : 
+                                   quality >= 40 ? 'text-yellow-600' : 'text-red-600';
+                
+                const qualityText = quality >= 80 ? 'Excellent' : 
+                                  quality >= 60 ? 'Good' : 
+                                  quality >= 40 ? 'Fair' : 'Poor';
+                
+                captureDiv.innerHTML = `
+                    <div class="bg-gray-200 rounded-lg p-2 h-24 flex items-center justify-center">
+                        <span class="text-4xl">🤖</span>
+                    </div>
+                    <p class="text-xs mt-1">Sample ${sampleNumber}</p>
+                    <p class="text-xs ${qualityColor}">${qualityText} (${Math.round(quality)}%)</p>
+                `;
+                
+                capturesGrid.appendChild(captureDiv);
+            }
+
+            // Reset controls
+            function resetControls() {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                completeBtn.classList.add('hidden');
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+                samplesCount.textContent = 'AI Quality Samples: 0/15';
+                cameraStatus.textContent = 'Camera status: Ready';
+                faceDetectionInfo.classList.add('hidden');
+                analysisSection.classList.add('hidden');
+                capturesGrid.innerHTML = '';
+                capturesSection.classList.add('hidden');
+                qualityValue.textContent = 'Waiting...';
+                qualityValue.className = 'text-orange-500';
+            }
+
+            // Initialize
+            loadStudentData();
+
+            // Auto-start enrollment if student data is present
+            if (studentData.studentId && studentData.studentId !== 'N/A') {
+                setTimeout(() => {
+                    startBtn.click();
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
