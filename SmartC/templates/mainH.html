@@ -22,17 +22,45 @@
   <!-- Left Panel -->
   <div class="left-panel">
     <div class="left-content">
+      {% if system_settings.school_logo %}
+       <div class="illustration" style="background-image: url('/static/uploads/{{ system_settings.school_logo }}')"></div>
+      {% else %}
        <div class="illustration" style="background-image: url('/static/uploads/Edu-removebg-preview.png')"></div>
+      {% endif %}
       <h1>Empowering Tomorrow's Classrooms.</h1>
       <p>Securely access your classroom monitoring tools.</p>
     </div>
-    <div class="copyright">© 2024 Edutrack. All rights reserved.</div>
+    <div class="copyright">© 2026 {{ system_settings.school_name or "Edutrack" }}. All rights reserved.</div>
+    
+    <!-- School Contact Info -->
+    {% if system_settings.school_address or system_settings.school_contact or system_settings.school_email %}
+    <div style="margin-top: 15px; padding: 15px 30px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; color: rgba(255,255,255,0.8);">
+      {% if system_settings.school_address %}
+      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="font-size: 16px;">location_on</span>
+        <span>{{ system_settings.school_address }}</span>
+      </div>
+      {% endif %}
+      {% if system_settings.school_contact %}
+      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="font-size: 16px;">phone</span>
+        <span>{{ system_settings.school_contact }}</span>
+      </div>
+      {% endif %}
+      {% if system_settings.school_email %}
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="font-size: 16px;">email</span>
+        <span>{{ system_settings.school_email }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 
   <!-- Right Panel - Login Form -->
   <div class="right-panel">
     <div class="login-container">
-      <div class="logo">Edutrack</div>
+      <div class="logo">{{ system_settings.school_name or "Edutrack" }}</div>
       <h2>Welcome back, log in to your account</h2>
 
       <!-- Error Message -->
@@ -96,7 +124,7 @@
       </div>
 
       <div class="mobile-copyright">
-        © 2024 Edutrack. All rights reserved.
+        © 2026 {{ system_settings.school_name or "Edutrack" }}. All rights reserved.
       </div>
     </div>
   </div>

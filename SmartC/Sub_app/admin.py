@@ -24,45 +24,61 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 # -----------------------------
 @admin_bp.route("/")
 def admin_dashboard():
+    """Admin dashboard with system settings."""
     students = Student.query.all()
     teachers = Teacher.query.all()
     teachers_json = [{"id": t.id, "name": t.name} for t in teachers]
-    return render_template("admin.html", students=students, teachers=teachers, teachers_json=teachers_json)
+    
+    # Get total counts
+    total_students = Student.query.count()
+    total_teachers = Teacher.query.count()
+    
+    # Count registered faces from face_database.pkl (same as face_list page)
+    total_face_encodings = 0
+    # Use the root directory's face_database.pkl (same level as SmartC folder)
+    face_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'face_database.pkl')
+    
+    if os.path.exists(face_db_path):
+        try:
+            with open(face_db_path, 'rb') as f:
+                face_database = pickle.load(f)
+                # Count total persons across all sections
+                for section_name, section_data in face_database.get('sections', {}).items():
+                    total_face_encodings += len(section_data)
+        except Exception as e:
+            print(f"Error loading face database: {e}")
+            total_face_encodings = 0
+    
+    # Get or create system settings
+    system_settings = SystemSettings.query.first()
+    if not system_settings:
+        system_settings = SystemSettings()
+        db.session.add(system_settings)
+        db.session.commit()
+    
+    return render_template(
+        "admin.html",
+        students=students,
+        teachers=teachers,
+        teachers_json=teachers_json,
+        system_settings=system_settings,
+        total_students=total_students,
+        total_teachers=total_teachers,
+        total_face_encodings=total_face_encodings
+    )
 
 @admin_bp.route("/students")
 def view_students():
     students = Student.query.all()
-    return render_template("database.html", students=students)
-
-
-
-# -----------------------------
-# Add Teacher
-# -----------------------------
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from .models import db, Student, Teacher   # 👈 relative import
-import os
-from werkzeug.utils import secure_filename
-from flask import current_app
-import uuid
-from werkzeug.security import generate_password_hash
-import json
-
-admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-
-@admin_bp.route("/")
-def admin_dashboard():
-    students = Student.query.all()
-    teachers = Teacher.query.all()
-    teachers_json = [{"id": t.id, "name": t.name} for t in teachers]
-    return render_template("admin.html", students=students, teachers=teachers, teachers_json=teachers_json)
-
-
-
-@admin_bp.route("/students")
-def view_students():
-    students = Student.query.all()   # fetch all students
-    return render_template("database.html", students=students)
+    
+    # Get or create system settings
+    system_settings = SystemSettings.query.first()
+    if not system_settings:
+        system_settings = SystemSettings()
+        db.session.add(system_settings)
+        db.session.commit()
+    
+    return render_template("database.html", students=students, system_settings=system_settings)
 
 from flask import jsonify
 # -----------------------------
@@ -407,16 +423,10 @@ def get_teachers():
 
     for t in teachers:
         try:
-            # Ensure classes are proper JSON objects
-            raw_classes = t.get_class_display()
-            if isinstance(raw_classes, str):
-                import json
-                try:
-                    classes = json.loads(raw_classes)
-                except json.JSONDecodeError:
-                    classes = []
-            else:
-                classes = raw_classes or []
+            # Get classes as JSON objects (not formatted strings)
+            classes = t.get_classes()  # This returns list of dicts with grade, section, subject
+            if not classes:
+                classes = []
         except Exception as e:
             print(f"Error loading classes for {t.name}: {e}")
             classes = []
@@ -461,6 +471,41 @@ def get_teachers():
 # ====================================================
 # 📘 STUDENTS API
 # ====================================================
+@admin_bp.route("/api/student/<int:student_id>", methods=["PUT"])
+def update_student(student_id):
+    """API endpoint to update student information."""
+    try:
+        student = Student.query.get(student_id)
+        if not student:
+            return jsonify({"success": False, "error": "Student not found"}), 404
+        
+        data = request.get_json()
+        
+        # Update fields
+        student.first_name = data.get('first_name', student.first_name)
+        student.last_name = data.get('last_name', student.last_name)
+        student.middle_initial = data.get('middle_initial', student.middle_initial)
+        student.student_id = data.get('student_id', student.student_id)
+        student.email = data.get('email', student.email)
+        student.gender = data.get('gender', student.gender)
+        student.grade_level = data.get('grade_level', student.grade_level)
+        student.section = data.get('section', student.section)
+        student.contact_info = data.get('contact_info', student.contact_info)
+        student.guardian_name = data.get('guardian_name', student.guardian_name)
+        student.guardian_contact = data.get('guardian_contact', student.guardian_contact)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Student updated successfully"
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @admin_bp.route("/api/students", methods=["GET"])
 def get_students():
     students = Student.query.all()
@@ -468,6 +513,9 @@ def get_students():
         {
             "id": s.id,
             "student_id": s.student_id,
+            "first_name": s.first_name,
+            "middle_initial": s.middle_initial or "",
+            "last_name": s.last_name,
             "name": s.name,
             "email": s.email,
             "gender": s.gender,
@@ -609,6 +657,48 @@ def register_face():
 # 🔧 SYSTEM SETTINGS API
 # ====================================================
 
+@admin_bp.route("/api/upload-logo", methods=["POST"])
+def upload_logo():
+    """Upload school logo."""
+    try:
+        if 'logo' not in request.files:
+            return jsonify({"success": False, "message": "No file uploaded"}), 400
+        
+        file = request.files['logo']
+        
+        if file.filename == '':
+            return jsonify({"success": False, "message": "No file selected"}), 400
+        
+        # Validate file type (optional but recommended)
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                "success": False, 
+                "message": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+            }), 400
+        
+        # Generate unique filename
+        filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+        
+        # Save to static/uploads folder
+        upload_folder = os.path.join(current_app.root_path, "static", "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+        
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "message": "Logo uploaded successfully"
+        })
+    
+    except Exception as e:
+        print(f"Error uploading logo: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 def get_or_create_settings():
     """Helper function to get or create system settings."""
     settings = SystemSettings.query.first()
@@ -736,3 +826,79 @@ def update_settings():
         db.session.rollback()
         print(f"Error updating settings: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_bp.route("/api/dashboard-stats", methods=["GET"])
+def dashboard_stats():
+    """Get dashboard statistics for overview."""
+    try:
+        # Count teachers
+        total_teachers = Teacher.query.count()
+        
+        # Count students
+        total_students = Student.query.count()
+        
+        # Count registered faces from face database (like face_list page)
+        total_faces = 0
+        # Use the root directory's face_database.pkl (same level as SmartC folder)
+        face_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'face_database.pkl')
+        
+        print(f"[DEBUG] Looking for face database at: {face_db_path}")
+        print(f"[DEBUG] File exists: {os.path.exists(face_db_path)}")
+        
+        if os.path.exists(face_db_path):
+            try:
+                with open(face_db_path, 'rb') as f:
+                    face_database = pickle.load(f)
+                    # Count total persons across all sections
+                    for section_name, section_data in face_database.get('sections', {}).items():
+                        total_faces += len(section_data)
+                    print(f"[DEBUG] Total faces counted from face database: {total_faces}")
+            except Exception as e:
+                print(f"Error loading face database: {e}")
+                # Fallback to counting from database records
+                teachers_with_faces = Teacher.query.filter(Teacher.photo.isnot(None)).count()
+                students_with_faces = Student.query.filter(Student.image.isnot(None)).count()
+                total_faces = teachers_with_faces + students_with_faces
+        else:
+            # Fallback if face database doesn't exist
+            teachers_with_faces = Teacher.query.filter(Teacher.photo.isnot(None)).count()
+            students_with_faces = Student.query.filter(Student.image.isnot(None)).count()
+            total_faces = teachers_with_faces + students_with_faces
+        
+        # Count unique classes from teachers
+        unique_classes = set()
+        teachers = Teacher.query.all()
+        for teacher in teachers:
+            if teacher.assigned_classes:
+                try:
+                    classes = json.loads(teacher.assigned_classes) if isinstance(teacher.assigned_classes, str) else teacher.assigned_classes
+                    if isinstance(classes, list):
+                        for cls in classes:
+                            if isinstance(cls, dict):
+                                grade = cls.get('grade', '')
+                                section = cls.get('section', '')
+                                if grade and section:
+                                    unique_classes.add(f"{grade}-{section}")
+                except:
+                    pass
+        
+        total_classes = len(unique_classes)
+        
+        return jsonify({
+            "success": True,
+            "total_teachers": total_teachers,
+            "total_students": total_students,
+            "total_faces": total_faces,
+            "total_classes": total_classes
+        })
+    except Exception as e:
+        print(f"Error getting dashboard stats: {e}")
+        return jsonify({
+            "success": False,
+            "message": str(e),
+            "total_teachers": 0,
+            "total_students": 0,
+            "total_faces": 0,
+            "total_classes": 0
+        }), 500

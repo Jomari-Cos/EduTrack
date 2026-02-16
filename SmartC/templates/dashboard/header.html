@@ -1,17 +1,22 @@
 <header class="w-full bg-white shadow-md">
   <div class="max-w-screen-xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
     <!-- Left Section -->
-    <div>
-      <h1 class="text-xl font-bold text-blue-600">SmartClassroom</h1>
-      <nav class="text-sm text-gray-500 mt-1">
-        <ol class="list-reset flex items-center space-x-2">
-          <li><button data-panel="dashboard" class="hover:text-blue-600">Dashboard</button></li>
-          <li>/</li>
-          <li><button data-panel="live" class="hover:text-blue-600">Live Monitoring</button></li>
-          <li>/</li>
-          <li><button data-panel="reports" class="hover:text-blue-600">Reports</button></li>
-        </ol>
-      </nav>
+    <div class="flex items-center gap-3">
+      {% if system_settings.school_logo %}
+      <img src="/static/uploads/{{ system_settings.school_logo }}" alt="{{ system_settings.school_name }}" class="h-12 w-12 object-contain">
+      {% endif %}
+      <div>
+        <h1 class="text-xl font-bold text-blue-600">{{ system_settings.school_name or "SmartClassroom" }}</h1>
+        <nav class="text-sm text-gray-500 mt-1">
+          <ol class="list-reset flex items-center space-x-2">
+            <li><button data-panel="dashboard" class="hover:text-blue-600">Dashboard</button></li>
+            <li>/</li>
+            <li><button data-panel="live" class="hover:text-blue-600">Live Monitoring</button></li>
+            <li>/</li>
+            <li><button data-panel="reports" class="hover:text-blue-600">Reports</button></li>
+          </ol>
+        </nav>
+      </div>
     </div>
 
     <!-- Right Section -->

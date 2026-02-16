@@ -898,6 +898,76 @@ const declineBtn = document.getElementById("declineTerms");
 // Get the form element
 const studentForm = document.querySelector("#student-section form");
 
+// ================================
+// 🔹 GENERATE STUDENT ID
+// ================================
+const generateStudentIdBtn = document.getElementById("generateStudentIdBtn");
+const studentIdInput = document.querySelector("input[name='student_id']");
+
+if (generateStudentIdBtn && studentIdInput) {
+  generateStudentIdBtn.addEventListener("click", async () => {
+    try {
+      // Generate ID using current year and 4 random digits
+      const currentYear = new Date().getFullYear(); // Get current year (e.g., 2026)
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // 4 random digits
+      const generatedId = `S${currentYear}${random}`;
+      
+      // Populate the input field
+      studentIdInput.value = generatedId;
+      
+      // Visual feedback
+      generateStudentIdBtn.textContent = "✓ Generated!";
+      generateStudentIdBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
+      generateStudentIdBtn.classList.add("bg-green-500");
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        generateStudentIdBtn.textContent = "Generate ID";
+        generateStudentIdBtn.classList.remove("bg-green-500");
+        generateStudentIdBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
+      }, 2000);
+    } catch (err) {
+      console.error("Error generating student ID:", err);
+      alert("Error generating ID. Please try again.");
+    }
+  });
+}
+
+// ================================
+// 🔹 GENERATE TEACHER ID
+// ================================
+const generateTeacherIdBtn = document.getElementById("generateTeacherIdBtn");
+const teacherIdInput = document.querySelector("input[name='teacher_id']");
+
+if (generateTeacherIdBtn && teacherIdInput) {
+  generateTeacherIdBtn.addEventListener("click", async () => {
+    try {
+      // Generate ID using current year and 4 random digits
+      const currentYear = new Date().getFullYear(); // Get current year (e.g., 2026)
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // 4 random digits
+      const generatedId = `T${currentYear}${random}`;
+      
+      // Populate the input field
+      teacherIdInput.value = generatedId;
+      
+      // Visual feedback
+      generateTeacherIdBtn.textContent = "✓ Generated!";
+      generateTeacherIdBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
+      generateTeacherIdBtn.classList.add("bg-green-500");
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        generateTeacherIdBtn.textContent = "Generate ID";
+        generateTeacherIdBtn.classList.remove("bg-green-500");
+        generateTeacherIdBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
+      }, 2000);
+    } catch (err) {
+      console.error("Error generating teacher ID:", err);
+      alert("Error generating ID. Please try again.");
+    }
+  });
+}
+
 // Show modal when clicking Add Student
 addStudentBtn.addEventListener("click", () => {
   termsModal.classList.remove("hidden");

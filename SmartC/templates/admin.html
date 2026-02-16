@@ -1,877 +1,1190 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>Admin Dashboard v2.0</title>
-     <!-- FIXED: Replace script with link for Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-      rel="stylesheet"
-    />
-    
-    <!-- Virtual Keyboard CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='Css/virtual-keyboard.css') }}">
-    <style>
-      .toggle-active {
-        transform: scale(1.05);
-        font-weight: 600;
-        transition: all 0.2s;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>{{ system_settings.school_name or "EduTrack" }} - Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='Css/virtual-keyboard.css') }}">
+  <style>
+    /* Custom Variables */
+    :root {
+      --sidebar-width: 260px;
+      --header-height: 64px;
+    }
+
+    /* Layout */
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 40;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar.mobile-hidden {
+      transform: translateX(-100%);
+    }
+
+    .main-content {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main-content.sidebar-hidden {
+      margin-left: 0;
+    }
+
+    .top-header {
+      height: var(--header-height);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.95);
+    }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* Sidebar Navigation */
+    .nav-item {
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    .nav-item.active {
+      background-color: rgba(59, 130, 246, 0.15);
+      border-left: 4px solid #3b82f6;
+      font-weight: 600;
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(to bottom, #3b82f6, #2563eb);
+    }
+
+    /* Stats Cards */
+    .stat-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Form Sections */
+    .form-section {
+      display: none;
+    }
+
+    .form-section.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
-      #classModal.show {
-        display: flex;
+      to {
         opacity: 1;
-        transition: opacity 0.3s ease;
+        transform: translateY(0);
       }
-      /* Custom scrollbar for better UX */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+    }
+
+    /* Accordion */
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .accordion-content.active {
+      max-height: 2000px;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
       }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
+
+      .sidebar.mobile-open {
+        transform: translateX(0);
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #fb923c;
-        border-radius: 10px;
+
+      .main-content {
+        margin-left: 0;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #f97316;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-blue {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-green {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    .badge-purple {
+      background-color: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .badge-orange {
+      background-color: #fed7aa;
+      color: #9a3412;
+    }
+
+    /* Responsive table columns */
+    @media (max-width: 768px) {
+      .hide-mobile {
+        display: none;
       }
-      
-      /* Force settings modal scroll behavior */
-      #systemSettingsModal .custom-scrollbar {
-        overflow-y: scroll !important;
-        max-height: 60vh !important;
-      }
-    </style>
-  </head>
-  <body class="bg-gray-50 min-h-screen flex flex-col">
-    <!-- Navbar -->
-    <nav class="bg-white p-4 shadow-md">
-      <div
-        class="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-4"
-      >
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">
-          Admin Dashboard
-        </h1>
-        <div class="flex flex-wrap gap-2 justify-center w-full sm:w-auto">
-          <button
-            id="view-student-btn"
-            class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
-          >
-            View Students
-          </button>
-          <button
-            id="view-teachers-btn"
-            class="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm sm:text-base"
-          >
-            View Teachers
-          </button>
-          <button
-            id="face-list-btn"
-            class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm sm:text-base"
-          >
-            View Face List
-          </button>
-          <button
-            id="system-settings-btn"
-            class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm sm:text-base flex items-center gap-1"
-          >
-            <span class="material-symbols-outlined text-sm" style="color: #fef08a;">settings</span>
-            Settings
-          </button>
-          <button
-            id="logout-btn"
-            class="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm sm:text-base"
-          >
-            <span class="material-symbols-outlined text-sm" style="color: #fecaca;">logout</span>
-            Logout
-          </button>
+    }
+
+    /* Sort indicators */
+    .sort-indicator {
+      display: inline-block;
+      opacity: 0.5;
+      font-size: 0.8em;
+    }
+
+    th:hover .sort-indicator {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+  <!-- Sidebar -->
+  <aside class="sidebar bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-2xl">
+    <div class="h-full flex flex-col custom-scrollbar overflow-y-auto">
+      <!-- Logo & School Info -->
+      <div class="p-6 border-b border-blue-500">
+        <div class="flex items-center gap-3 mb-2">
+          {% if system_settings.school_logo %}
+          <img src="/static/uploads/{{ system_settings.school_logo }}" alt="Logo" class="h-12 w-12 object-contain bg-white rounded-lg p-1">
+          {% else %}
+          <div class="h-12 w-12 bg-white rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-600">school</span>
+          </div>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <h2 class="font-bold text-lg leading-tight truncate">{{ system_settings.school_name or "EduTrack" }}</h2>
+            <p class="text-xs text-blue-200">Admin Dashboard</p>
+          </div>
         </div>
       </div>
-    </nav>
 
-    <main class="flex-1 container mx-auto p-4 sm:p-6 lg:p-8">
-      <!-- Toggle Switch -->
-      <div class="flex justify-center space-x-2 sm:space-x-4 mb-6">
-        <label class="cursor-pointer">
-          <input
-            type="radio"
-            name="section-toggle"
-            class="hidden"
-            id="teacher-toggle"
-            checked
-          />
-          <span
-            class="toggle-span px-4 sm:px-6 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 toggle-active text-sm sm:text-base"
-          >
-            Teachers
-          </span>
-        </label>
-        <label class="cursor-pointer">
-          <input
-            type="radio"
-            name="section-toggle"
-            class="hidden"
-            id="student-toggle"
-          />
-          <span
-            class="toggle-span px-4 sm:px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 text-sm sm:text-base"
-          >
-            Students
-          </span>
-        </label>
+      <!-- Navigation -->
+      <nav class="flex-1 p-4 space-y-1">
+        <a href="#" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" data-view="dashboard">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" data-view="teachers">
+          <span class="material-symbols-outlined">school</span>
+          <span>Teachers</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" data-view="students">
+          <span class="material-symbols-outlined">person</span>
+          <span>Students</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" id="view-teachers-sidebar">
+          <span class="material-symbols-outlined">groups</span>
+          <span>View All Teachers</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" id="view-students-sidebar">
+          <span class="material-symbols-outlined">group</span>
+          <span>View All Students</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" id="face-list-sidebar">
+          <span class="material-symbols-outlined">face</span>
+          <span>Face Database</span>
+        </a>
+        <div class="border-t border-blue-500 my-2"></div>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer" id="system-settings-sidebar">
+          <span class="material-symbols-outlined">settings</span>
+          <span>Settings</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer text-red-200 hover:bg-red-500" id="logout-sidebar">
+          <span class="material-symbols-outlined">logout</span>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <!-- Academic Year Info -->
+      {% if system_settings.academic_year %}
+      <div class="p-4 border-t border-blue-500 bg-blue-900 bg-opacity-30">
+        <p class="text-xs text-blue-200 mb-1">Academic Year</p>
+        <p class="font-semibold text-sm">{{ system_settings.academic_year }}</p>
+        <p class="text-xs text-blue-200">{{ system_settings.current_term }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Hidden buttons for existing JavaScript compatibility -->
+    <div style="display: none;">
+      <button id="face-list-btn"></button>
+      <button id="system-settings-btn"></button>
+      <button id="logout-btn"></button>
+    </div>
+
+    <!-- Top Header -->
+    <header class="top-header border-b border-gray-200 shadow-sm">
+      <div class="h-full px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <button id="mobileSidebarToggle" class="lg:hidden text-gray-600 hover:text-gray-900">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div>
+            <h1 class="text-xl font-bold text-gray-800" id="pageTitle">Dashboard Overview</h1>
+            <p class="text-xs text-gray-500">{{ system_settings.school_address or 'Manage your school efficiently' }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          {% if system_settings.school_contact %}
+          <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
+            <span class="material-symbols-outlined text-base">phone</span>
+            <span>{{ system_settings.school_contact }}</span>
+          </div>
+          {% endif %}
+          <div class="h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+            A
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="p-6">
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 p-4 rounded-lg border {% if category == 'success' %}bg-green-50 text-green-800 border-green-200{% elif category == 'error' %}bg-red-50 text-red-800 border-red-200{% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined">{% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}</span>
+            <span>{{ message }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- Dashboard View -->
+      <div id="dashboardView" class="form-section active">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <!-- Stats Cards -->
+          <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+              <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                <span class="material-symbols-outlined text-3xl">school</span>
+              </div>
+              <span class="badge badge-blue bg-white bg-opacity-30 text-white">Active</span>
+            </div>
+            <h3 class="text-3xl font-bold mb-1" id="totalTeachers">{{ total_teachers }}</h3>
+            <p class="text-blue-100 text-sm">Total Teachers</p>
+          </div>
+
+          <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+              <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                <span class="material-symbols-outlined text-3xl">person</span>
+              </div>
+              <span class="badge badge-green bg-white bg-opacity-30 text-white">Enrolled</span>
+            </div>
+            <h3 class="text-3xl font-bold mb-1" id="totalStudents">{{ total_students }}</h3>
+            <p class="text-green-100 text-sm">Total Students</p>
+          </div>
+
+          <div class="stat-card bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+              <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                <span class="material-symbols-outlined text-3xl">face</span>
+              </div>
+              <span class="badge badge-purple bg-white bg-opacity-30 text-white">Active</span>
+            </div>
+            <h3 class="text-3xl font-bold mb-1" id="totalFaces">{{ total_face_encodings }}</h3>
+            <p class="text-purple-100 text-sm">Face Encodings</p>
+          </div>
+
+          <div class="stat-card bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+              <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                <span class="material-symbols-outlined text-3xl">class</span>
+              </div>
+              <span class="badge badge-orange bg-white bg-opacity-30 text-white">Active</span>
+            </div>
+            <h3 class="text-3xl font-bold mb-1" id="totalClasses">0</h3>
+            <p class="text-orange-100 text-sm">Active Classes</p>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-600">bolt</span>
+            Quick Actions
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button class="quick-action-btn flex items-center gap-3 p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200" data-view="teachers">
+              <span class="material-symbols-outlined text-blue-600">person_add</span>
+              <span class="font-medium text-gray-800">Add Teacher</span>
+            </button>
+            <button class="quick-action-btn flex items-center gap-3 p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors border border-green-200" data-view="students">
+              <span class="material-symbols-outlined text-green-600">person_add</span>
+              <span class="font-medium text-gray-800">Add Student</span>
+            </button>
+            <button class="quick-action-btn flex items-center gap-3 p-4 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors border border-purple-200" id="view-teachers-quick">
+              <span class="material-symbols-outlined text-purple-600">groups</span>
+              <span class="font-medium text-gray-800">View Teachers</span>
+            </button>
+            <button class="quick-action-btn flex items-center gap-3 p-4 rounded-lg bg-orange-50 hover:bg-orange-100 transition-colors border border-orange-200" id="system-settings-quick">
+              <span class="material-symbols-outlined text-orange-600">settings</span>
+              <span class="font-medium text-gray-800">Settings</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Activity / School Info -->
+        {% if system_settings.school_name %}
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-600">info</span>
+            School Information
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% if system_settings.school_address %}
+            <div class="flex items-start gap-3">
+              <div class="bg-blue-100 rounded-lg p-2">
+                <span class="material-symbols-outlined text-blue-600">location_on</span>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1">Address</p>
+                <p class="text-sm font-medium text-gray-800">{{ system_settings.school_address }}</p>
+              </div>
+            </div>
+            {% endif %}
+            {% if system_settings.school_contact %}
+            <div class="flex items-start gap-3">
+              <div class="bg-green-100 rounded-lg p-2">
+                <span class="material-symbols-outlined text-green-600">phone</span>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1">Contact</p>
+                <p class="text-sm font-medium text-gray-800">{{ system_settings.school_contact }}</p>
+              </div>
+            </div>
+            {% endif %}
+            {% if system_settings.school_email %}
+            <div class="flex items-start gap-3">
+              <div class="bg-purple-100 rounded-lg p-2">
+                <span class="material-symbols-outlined text-purple-600">email</span>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1">Email</p>
+                <p class="text-sm font-medium text-gray-800">{{ system_settings.school_email }}</p>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
       </div>
 
-      <!-- ============================= -->
-      <!-- TEACHER SECTION -->
-      <!-- ============================= -->
-      <section id="teacher-section" class="transition-all duration-300">
-        <div
-          class="bg-white shadow-md rounded-xl p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto"
-        >
-          <h2
-            class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-blue-700 flex items-center gap-2"
-          >
-            <span class="material-symbols-outlined">school</span>
-            Manage Teachers
-          </h2>
-
-          <!-- Flash Messages -->
-          {% with messages = get_flashed_messages(with_categories=true) %} {% if
-          messages %} {% for category, message in messages %}
-          <div
-            class="p-3 mb-4 rounded-lg text-sm {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200 {% elif category == 'error' %}bg-red-100 text-red-700 border border-red-200 {% else %}bg-gray-100 text-gray-700 border border-gray-200{% endif %}"
-          >
-            {{ message }}
+      <!-- Teachers View -->
+      <div id="teachersView" class="form-section">
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-blue-700 flex items-center gap-2">
+              <span class="material-symbols-outlined">school</span>
+              Add New Teacher
+            </h2>
+            <button id="view-teachers-btn" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">groups</span>
+              View All
+            </button>
           </div>
-          {% endfor %} {% endif %} {% endwith %}
 
-          <form
-            id="teacherForm"
-            action="{{ url_for('admin.add_teacher') }}"
-            method="post"
-            enctype="multipart/form-data"
-          >
-            <!-- Responsive Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <!-- LEFT COLUMN -->
-              <div class="space-y-4">
-                <h3 class="text-md font-semibold text-gray-700 border-b pb-2">
+          <form id="teacherForm" action="{{ url_for('admin.add_teacher') }}" method="post" enctype="multipart/form-data">
+            <!-- Accordion Section 1: Personal Information -->
+            <div class="border rounded-lg mb-4">
+              <button type="button" class="accordion-toggle w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg">
+                <span class="font-semibold text-gray-800 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-600">person</span>
                   Personal Information
-                </h3>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div class="col-span-3 sm:col-span-1">
-                    <label class="block text-sm font-medium mb-1"
-                      >First Name</label
-                    >
-                    <input
-                      type="text"
-                      name="first_name"
-                      placeholder="Jane"
-                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      required
-                    />
+                </span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="accordion-content active px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">First Name *</label>
+                    <input type="text" name="first_name" placeholder="Jane" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
                   </div>
-                  <div class="col-span-3 sm:col-span-1">
+                  <div>
                     <label class="block text-sm font-medium mb-1">M.I.</label>
-                    <input
-                      type="text"
-                      name="middle_initial"
-                      maxlength="1"
-                      placeholder="M"
-                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                    />
+                    <input type="text" name="middle_initial" maxlength="1" placeholder="M" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" />
                   </div>
-                  <div class="col-span-3 sm:col-span-1">
-                    <label class="block text-sm font-medium mb-1"
-                      >Last Name</label
-                    >
-                    <input
-                      type="text"
-                      name="last_name"
-                      placeholder="Doe"
-                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      required
-                    />
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Last Name *</label>
+                    <input type="text" name="last_name" placeholder="Doe" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
-                    <label class="block text-sm font-medium mb-1"
-                      >Date of Birth</label
-                    >
-                    <input
-                      type="date"
-                      name="date_of_birth"
-                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      required
-                    />
+                    <label class="block text-sm font-medium mb-1">Date of Birth *</label>
+                    <input type="date" name="date_of_birth" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium mb-1">Gender</label>
-                    <select
-                      name="gender"
-                      class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      required
-                    >
+                    <label class="block text-sm font-medium mb-1">Gender *</label>
+                    <select name="gender" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required>
                       <option disabled selected>Select</option>
                       <option>Male</option>
                       <option>Female</option>
                       <option>Other</option>
                     </select>
                   </div>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1"
-                    >Contact Number</label
-                  >
-                  <input
-                    type="tel"
-                    name="contact_info"
-                    placeholder="+63 912 345 6789"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="teacher_email"
-                    placeholder="jane@example.com"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1"
-                    >Teacher ID</label
-                  >
-                  <input
-                    type="text"
-                    name="teacher_id"
-                    placeholder="T123"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <!-- RIGHT COLUMN -->
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium mb-1"
-                    >Assigned Classes</label
-                  >
-                  <ul
-                    id="assignedClassesList"
-                    class="list-disc list-inside text-gray-700 mt-2 max-h-32 overflow-y-auto custom-scrollbar bg-gray-50 p-2 rounded-lg"
-                  ></ul>
-                  <input
-                    type="hidden"
-                    name="assigned_classes"
-                    id="assignedClassesInput"
-                  />
-                  <button
-                    type="button"
-                    onclick="openClassModal()"
-                    class="mt-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
-                  >
-                    <span class="material-symbols-outlined text-sm" style="color: #bbf7d0;">add</span>
-                    Add Class
-                  </button>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1">Password</label>
-                  <input
-                    type="password"
-                    name="teacher_password"
-                    placeholder="••••••"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1"
-                    >Confirm Password</label
-                  >
-                  <input
-                    type="password"
-                    id="teacherConfirmPassword"
-                    placeholder="Re-enter"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                    required
-                  />
-                  <p
-                    id="passwordError"
-                    class="text-red-500 text-sm mt-1 hidden"
-                  >
-                    ⚠️ Passwords do not match
-                  </p>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1">Photo</label>
-                  <input
-                    id="teacherPhoto"
-                    name="teacher_photo"
-                    type="file"
-                    accept="image/*"
-                    class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-1">RFID</label>
-                  <button
-                    type="button"
-                    id="openRfidModal"
-                    class="text-blue-500 hover:text-blue-700 hover:underline flex items-center gap-1"
-                  >
-                    <span class="material-symbols-outlined text-sm"
-                      >credit_card</span
-                    >
-                    Do you have an RFID?
-                  </button>
-                  <input type="hidden" id="rfidInput" name="rfid_code" />
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Photo</label>
+                    <input id="teacherPhoto" name="teacher_photo" type="file" accept="image/*" class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="mt-6 sm:mt-8 text-center">
-              <button
-                type="submit"
-                class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-semibold transition-colors w-full sm:w-auto flex items-center justify-center gap-2 mx-auto"
-              >
-                <span class="material-symbols-outlined text-sm" style="color: #bfdbfe;"
-                  >person_add</span
-                >
+            <!-- Accordion Section 2: Contact & ID -->
+            <div class="border rounded-lg mb-4">
+              <button type="button" class="accordion-toggle w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors">
+                <span class="font-semibold text-gray-800 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-600">contact_mail</span>
+                  Contact & Identification
+                </span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="accordion-content px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Contact Number *</label>
+                    <input type="tel" name="contact_info" placeholder="+63 912 345 6789" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Email *</label>
+                    <input type="email" name="teacher_email" placeholder="jane@example.com" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Teacher ID *</label>
+                    <div class="flex gap-2">
+                      <input type="text" name="teacher_id" placeholder="T123" class="flex-1 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
+                      <button type="button" id="generateTeacherIdBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
+                        Generate
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">RFID</label>
+                    <button type="button" id="openRfidModal" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+                      <span class="material-symbols-outlined text-sm">credit_card</span>
+                      <span>Scan RFID Card</span>
+                    </button>
+                    <input type="hidden" id="rfidInput" name="rfid_code" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accordion Section 3: Classes & Password -->
+            <div class="border rounded-lg mb-6">
+              <button type="button" class="accordion-toggle w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors">
+                <span class="font-semibold text-gray-800 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-600">class</span>
+                  Classes & Security
+                </span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="accordion-content px-6 py-4">
+                <div class="mb-4">
+                  <label class="block text-sm font-medium mb-2">Assigned Classes</label>
+                  <div class="bg-gray-50 rounded-lg p-4 min-h-[100px] mb-2">
+                    <ul id="assignedClassesList" class="space-y-2 text-sm"></ul>
+                  </div>
+                  <input type="hidden" name="assigned_classes" id="assignedClassesInput" />
+                  <button type="button" onclick="openClassModal()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    Add Class
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Password *</label>
+                    <input type="password" name="teacher_password" placeholder="••••••" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Confirm Password *</label>
+                    <input type="password" id="teacherConfirmPassword" placeholder="••••••" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-300" required />
+                  </div>
+                </div>
+                <p id="passwordError" class="text-red-500 text-sm mt-2 hidden">⚠️ Passwords do not match</p>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+              <button type="button" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium" onclick="document.getElementById('teacherForm').reset()">
+                Reset Form
+              </button>
+              <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">person_add</span>
                 Add Teacher
               </button>
             </div>
           </form>
         </div>
-      </section>
+      </div>
 
-<!-- ============================= -->
-<!-- STUDENT SECTION -->
-<!-- ============================= -->
-<section id="student-section" class="hidden transition-all duration-300">
-  <div class="bg-white shadow-md rounded-xl p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
-    <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-green-700 flex items-center gap-2">
-      <span class="material-symbols-outlined">person</span>
-      Manage Students
-    </h2>
-
-    <!-- Flash Messages for Students -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="p-3 mb-4 rounded-lg text-sm
-          {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200
-          {% elif category == 'error' %}bg-red-100 text-red-700 border border-red-200
-          {% else %}bg-gray-100 text-gray-700 border border-gray-200{% endif %}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    {% endif %}
-    {% endwith %}
-
-    <form
-      action="{{ url_for('admin.add_student') }}"
-      method="post"
-      enctype="multipart/form-data"
-    >
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        <!-- LEFT COLUMN -->
-        <div class="space-y-4">
-          <h3 class="text-md font-semibold text-gray-700 border-b pb-2">Student Information</h3>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="col-span-3 sm:col-span-1">
-              <label class="block text-sm font-medium mb-1">First Name</label>
-              <input name="first_name" placeholder="John" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-            </div>
-            <div class="col-span-3 sm:col-span-1">
-              <label class="block text-sm font-medium mb-1">M.I.</label>
-              <input maxlength="1" name="middle_initial" placeholder="M" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" />
-            </div>
-            <div class="col-span-3 sm:col-span-1">
-              <label class="block text-sm font-medium mb-1">Last Name</label>
-              <input name="last_name" placeholder="Smith" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Date of Birth</label>
-              <input type="date" name="date_of_birth" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Gender</label>
-              <select name="gender" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required>
-                <option disabled selected>Select</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Grade Level</label>
-              <select id="gradeLevel" name="grade_level" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required>
-                <option disabled selected>Select grade</option>
-                <!-- Options populated dynamically by adminJS.js -->
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Section</label>
-              <select id="section" name="section" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" disabled required>
-                <option disabled selected>Select section</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Contact Info</label>
-            <input type="tel" name="contact_info" placeholder="+63 912 345 6789" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="space-y-4">
-          <h3 class="text-md font-semibold text-gray-700 border-b pb-2">Guardian Information</h3>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Guardian</label>
-            <input name="guardian_name" placeholder="Jane Smith" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Guardian Contact</label>
-            <input type="tel" name="guardian_contact" placeholder="+63 987 654 3210" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Email</label>
-            <input type="email" name="student_email" placeholder="john@example.com" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Student ID</label>
-            <input name="student_id" placeholder="S456" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300 focus:border-green-500" required />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Photo</label>
-            <input id="studentPhoto" name="student_photo" type="file" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
-          </div>
-
-          <!-- Hidden input to track Accept/Decline -->
-          <input type="hidden" name="next_action" id="nextAction" value="decline" />
-
-          <div class="mt-4 space-y-2">
-            <button type="button" id="addStudentBtn" class="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors w-full flex items-center justify-center gap-2">
-              <span class="material-symbols-outlined text-sm" style="color: #bbf7d0;">person_add</span>
-              Add Student
+      <!-- Students View -->
+      <div id="studentsView" class="form-section">
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-green-700 flex items-center gap-2">
+              <span class="material-symbols-outlined">person</span>
+              Add New Student
+            </h2>
+            <button id="view-student-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">group</span>
+              View All
             </button>
           </div>
+
+          <form action="{{ url_for('admin.add_student') }}" method="post" enctype="multipart/form-data">
+            <!-- Accordion Section 1: Student Information -->
+            <div class="border rounded-lg mb-4">
+              <button type="button" class="accordion-toggle w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg">
+                <span class="font-semibold text-gray-800 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-green-600">person</span>
+                  Student Information
+                </span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="accordion-content active px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">First Name *</label>
+                    <input name="first_name" placeholder="John" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">M.I.</label>
+                    <input maxlength="1" name="middle_initial" placeholder="M" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Last Name *</label>
+                    <input name="last_name" placeholder="Smith" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Date of Birth *</label>
+                    <input type="date" name="date_of_birth" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Gender *</label>
+                    <select name="gender" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required>
+                      <option disabled selected>Select</option>
+                      <option>Male</option>
+                      <option>Female</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Photo</label>
+                    <input id="studentPhoto" name="student_photo" type="file" accept="image/*" class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accordion Section 2: Academic Information -->
+            <div class="border rounded-lg mb-4">
+              <button type="button" class="accordion-toggle w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors">
+                <span class="font-semibold text-gray-800 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-green-600">school</span>
+                  Academic Information
+                </span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="accordion-content px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Grade Level *</label>
+                    <select id="gradeLevel" name="grade_level" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required>
+                      <option disabled selected>Select grade</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Section *</label>
+                    <select id="section" name="section" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" disabled required>
+                      <option disabled selected>Select section</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Student ID *</label>
+                    <div class="flex gap-2">
+                      <input name="student_id" placeholder="S456" class="flex-1 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                      <button type="button" id="generateStudentIdBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap text-sm">
+                        Generate
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accordion Section 3: Contact Information -->
+            <div class="border rounded-lg mb-6">
+              <button type="button" class="accordion-toggle w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors">
+                <span class="font-semibold text-gray-800 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-green-600">contacts</span>
+                  Contact & Guardian Information
+                </span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="accordion-content px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Email *</label>
+                    <input type="email" name="student_email" placeholder="john@example.com" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Contact Info *</label>
+                    <input type="tel" name="contact_info" placeholder="+63 912 345 6789" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Guardian Name *</label>
+                    <input name="guardian_name" placeholder="Jane Smith" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Guardian Contact *</label>
+                    <input type="tel" name="guardian_contact" placeholder="+63 987 654 3210" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-300" required />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <input type="hidden" name="next_action" id="nextAction" value="decline" />
+
+            <div class="flex justify-end gap-3">
+              <button type="button" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium" onclick="this.form.reset()">
+                Reset Form
+              </button>
+              <button type="button" id="addStudentBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">person_add</span>
+                Add Student
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-    </form>
-  </div>
-</section>
-
     </main>
+  </div>
 
-    <!-- RFID Modal -->
-    <div
-      id="rfidModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4"
-    >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md relative">
-        <span
-          id="closeRfidModal"
-          class="absolute top-3 right-3 cursor-pointer text-gray-500 hover:text-gray-700 text-xl"
-          >&times;</span
-        >
-        <h2 class="text-lg font-bold mb-4">RFID Scan</h2>
-        <p id="rfidMessage" class="mb-4">Please scan your RFID card now.</p>
-        <div id="rfidResult" class="text-green-600 font-semibold"></div>
-      </div>
-    </div>
-
-    <!-- Modal: Add Class -->
-    <div
-      id="classModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
-    >
-      <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-          <span class="material-symbols-outlined">add</span>
-          Add Class
-        </h2>
-        <form id="classForm" class="space-y-4">
-          <!-- Grade -->
-          <div>
-            <label for="classLevel" class="block text-sm font-medium mb-1"
-              >Grade Level</label
-            >
-            <select
-              id="classLevel"
-              name="class_Level"
-              class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-              required
-            >
-              <option value="" disabled selected>Select grade</option>
-              <!-- Options populated dynamically by adminJS.js -->
-            </select>
-          </div>
-
-          <!-- Section -->
-          <div>
-            <label for="sectionLevel" class="block text-sm font-medium mb-1"
-              >Section</label
-            >
-            <select
-              id="sectionLevel"
-              name="section_Level"
-              class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-              required
-            >
-              <option value="" disabled selected>Select section</option>
-            </select>
-          </div>
-
-          <!-- Subject -->
-          <div>
-            <label for="subjectLevel" class="block text-sm font-medium mb-1"
-              >Subject</label
-            >
-            <select
-              id="subjectLevel"
-              name="subject_Level"
-              class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-              required
-            >
-              <option value="" disabled selected>Select subject</option>
-            </select>
-          </div>
-
-          <!-- Buttons -->
-          <div class="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onclick="closeClassModal()"
-              class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-            >
-              Add
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-<!-- Teachers Modal -->
-<div
-  id="teacherModal"
-  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
->
-  <div
-    class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-4 sm:p-6 relative max-h-[90vh] overflow-hidden flex flex-col"
-  >
-    <!-- Close Button -->
-    <button
-      id="closeModal"
-      class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold z-10"
-    >
-      ×
-    </button>
-
-    <h2
-      class="text-xl sm:text-2xl font-bold mb-4 text-purple-600 flex items-center gap-2"
-    >
-      <span class="material-symbols-outlined">groups</span>
-      Teachers List
-    </h2>
-
-    <!-- Scrollable Table Container -->
-    <div class="overflow-y-auto custom-scrollbar flex-1 max-h-[500px]">
-      <table class="min-w-full border border-gray-300 rounded-lg">
-        <thead class="bg-purple-100 sticky top-0">
-          <tr>
-            <th class="py-2 px-3 border-b text-left text-sm">Photo</th>
-            <th class="py-2 px-3 border-b text-left text-sm">Name</th>
-            <th class="py-2 px-3 border-b text-left text-sm">Teacher ID</th>
-            <th class="py-2 px-3 border-b text-left text-sm">Email</th>
-            <th class="py-2 px-3 border-b text-left text-sm">Age</th>
-            <th class="py-2 px-3 border-b text-left text-sm">Gender</th>
-            <th class="py-2 px-3 border-b text-left text-sm">Classes</th>
-            <th class="py-2 px-3 border-b text-center text-sm">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="teacherTableBody" class="divide-y divide-gray-200 bg-white"></tbody>
-      </table>
+  <!-- Keep all existing modals (RFID, Class, Teachers, Students, Terms, Settings) -->
+  <!-- RFID Modal -->
+  <div id="rfidModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md relative">
+      <span id="closeRfidModal" class="absolute top-3 right-3 cursor-pointer text-gray-500 hover:text-gray-700 text-xl">&times;</span>
+      <h2 class="text-lg font-bold mb-4">RFID Scan</h2>
+      <p id="rfidMessage" class="mb-4">Please scan your RFID card now.</p>
+      <div id="rfidResult" class="text-green-600 font-semibold"></div>
     </div>
   </div>
-</div>
 
-    <!-- Edit Teacher Modal -->
-    <div
-      id="editTeacherModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
-    >
-      <div class="bg-white rounded-lg shadow-lg w-11/12 md:w-1/2 p-6 relative">
-        <button
-          id="closeEditModal"
-          class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold"
-        >
-          ×
-        </button>
-        <h2 class="text-2xl font-bold mb-4 text-purple-600">Edit Teacher</h2>
-
-        <form id="editTeacherForm" class="space-y-3">
-          <input type="hidden" id="editTeacherId" />
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              id="editName"
-              type="text"
-              class="w-full border rounded px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              id="editEmail"
-              type="email"
-              class="w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700"
-              >Gender</label
-            >
-            <select id="editGender" class="w-full border rounded px-3 py-2">
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700"
-              >Contact Info</label
-            >
-            <input
-              id="editContact"
-              type="text"
-              class="w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700"
-              >Assigned Classes</label
-            >
-            <textarea
-              id="editClasses"
-              rows="3"
-              class="w-full border rounded px-3 py-2"
-            ></textarea>
-          </div>
-
-          <div class="flex justify-end space-x-2 mt-4">
-            <button
-              type="button"
-              id="cancelEditBtn"
-              class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-<div
-  id="studentsModal"
-  class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
->
-  <div
-    class="bg-white w-full max-w-6xl rounded-lg shadow-lg p-4 sm:p-6 relative max-h-[90vh] overflow-hidden flex flex-col"
-  >
-    <!-- Close button -->
-    <button
-      id="closeStudentsModal"
-      class="absolute top-3 right-3 text-gray-700 hover:text-gray-900 font-bold text-xl"
-    >
-      &times;
-    </button>
-
-    <h2 class="text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2">
-      <span class="material-symbols-outlined">school</span>
-      Students List
-    </h2>
-
-    <!-- Student count -->
-    <p id="studentsCount" class="mb-4 text-gray-700 font-medium"></p>
-
-    <div class="mb-4">
-      <label class="block text-sm font-medium mb-1">Filter by Section</label>
-      <select
-        name="section_Level"
-        id="Section_level"
-        class="w-full sm:w-64 border border-gray-300 rounded-lg p-2"
-      ></select>
-    </div>
-
-    <!-- Scrollable table container -->
-    <div class="overflow-auto custom-scrollbar flex-1" style="max-height: 400px;">
-      <table class="w-full border-collapse border">
-        <thead class="bg-gray-100 sticky top-0">
-          <tr>
-            <th class="border p-2 text-sm">Photo</th>
-            <th class="border p-2 text-sm">Student ID</th>
-            <th class="border p-2 text-sm">Name</th>
-            <th class="border p-2 text-sm">Grade & Section</th>
-            <th class="border p-2 text-sm">Email</th>
-            <th class="border p-2 text-sm">Gender</th>
-          </tr>
-        </thead>
-        <tbody id="studentsTableBody">
-          <!-- Students will be dynamically inserted here -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-    <!-- Terms & Conditions Modal -->
-    <div
-      id="termsModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
-    >
-      <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
-        <h2 class="text-lg font-bold mb-4">
-          Terms & Conditions - Facial Encodings
-        </h2>
-        <p class="mb-4 text-gray-700 text-sm">
-          By proceeding, you agree that this student’s facial data will be
-          captured and stored for identification purposes. The data will be
-          securely stored and only used for authorized recognition in
-          school-related activities.
-        </p>
+  <!-- Modal: Add Class -->
+  <div id="classModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined">add</span>
+        Add Class
+      </h2>
+      <form id="classForm" class="space-y-4">
+        <div>
+          <label for="classLevel" class="block text-sm font-medium mb-1">Grade Level</label>
+          <select id="classLevel" name="class_Level" class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300" required>
+            <option value="" disabled selected>Select grade</option>
+          </select>
+        </div>
+        <div>
+          <label for="sectionLevel" class="block text-sm font-medium mb-1">Section</label>
+          <select id="sectionLevel" name="section_Level" class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300" required>
+            <option value="" disabled selected>Select section</option>
+          </select>
+        </div>
+        <div>
+          <label for="subjectLevel" class="block text-sm font-medium mb-1">Subject</label>
+          <select id="subjectLevel" name="subject_Level" class="w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-blue-300" required>
+            <option value="" disabled selected>Select subject</option>
+          </select>
+        </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            id="declineTerms"
-            class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-          >
-            Decline
-          </button>
-          <button
-            type="button"
-            id="acceptTerms"
-            class="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
-          >
-            Accept
+          <button type="button" onclick="closeClassModal()" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Teachers Modal -->
+  <div id="teacherModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-7xl p-4 sm:p-6 relative max-h-[90vh] overflow-hidden flex flex-col">
+      <button id="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold z-10">×</button>
+      
+      <!-- Header -->
+      <div class="mb-4">
+        <h2 class="text-xl sm:text-2xl font-bold text-purple-600 flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined">groups</span>
+          Teachers List
+        </h2>
+        
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
+            <div class="text-2xl font-bold text-purple-600" id="totalTeachersCount">0</div>
+            <div class="text-xs text-gray-600">Total Teachers</div>
+          </div>
+          <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+            <div class="text-2xl font-bold text-blue-600" id="maleTeachersCount">0</div>
+            <div class="text-xs text-gray-600">Male</div>
+          </div>
+          <div class="bg-pink-50 rounded-lg p-3 border border-pink-200">
+            <div class="text-2xl font-bold text-pink-600" id="femaleTeachersCount">0</div>
+            <div class="text-xs text-gray-600">Female</div>
+          </div>
+          <div class="bg-green-50 rounded-lg p-3 border border-green-200">
+            <div class="text-2xl font-bold text-green-600" id="avgClassLoad">0</div>
+            <div class="text-xs text-gray-600">Avg Classes</div>
+          </div>
+        </div>
+        
+        <!-- Search & Export Row -->
+        <div class="flex flex-col md:flex-row gap-3 mb-3">
+          <div class="relative flex-1">
+            <input type="text" id="teacherSearch" 
+                   placeholder="🔍 Search by name, ID, email, or subject..."
+                   class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-300">
+            <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
+          </div>
+          <div class="flex gap-2">
+            <button id="exportTeachersCSV" class="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm whitespace-nowrap">
+              <span class="material-symbols-outlined text-sm">download</span>
+              Export CSV
+            </button>
+            <button id="refreshTeachersList" class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
+              <span class="material-symbols-outlined text-sm">refresh</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Filters Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <select id="filterTeacherGender" class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-300">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <select id="filterTeacherGrade" class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-300">
+            <option value="">All Grades</option>
+            <option value="10">Grade 10</option>
+            <option value="11">Grade 11</option>
+            <option value="12">Grade 12</option>
+          </select>
+          
+          <select id="filterTeacherSubject" class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-300">
+            <option value="">All Subjects</option>
+          </select>
+          
+          <button id="clearTeacherFilters" class="bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 text-sm font-medium">
+            Clear Filters
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- System Settings Modal -->
-    <div
-      id="systemSettingsModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
-    >
-      <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl relative flex flex-col" style="max-height: 90vh;">
-        <button
-          id="closeSettingsModal"
-          class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold z-10"
-        >
-          ×
-        </button>
-        
-        <div class="p-6 border-b" style="flex-shrink: 0;">
-          <h2 class="text-2xl font-bold text-orange-600 flex items-center gap-2">
-            <span class="material-symbols-outlined">settings</span>
-            System Settings
-          </h2>
+      
+      <!-- Table Container -->
+      <div class="overflow-y-auto custom-scrollbar flex-1" style="max-height: 400px;">
+        <table class="min-w-full border border-gray-300 rounded-lg">
+          <thead class="bg-purple-100 sticky top-0">
+            <tr>
+              <th class="py-2 px-3 border-b text-left text-sm cursor-pointer hover:bg-purple-200" onclick="sortTeachersTable('photo')">
+                Photo
+              </th>
+              <th class="py-2 px-3 border-b text-left text-sm cursor-pointer hover:bg-purple-200" onclick="sortTeachersTable('name')">
+                Name <span class="sort-indicator">↕</span>
+              </th>
+              <th class="py-2 px-3 border-b text-left text-sm cursor-pointer hover:bg-purple-200" onclick="sortTeachersTable('teacher_id')">
+                Teacher ID <span class="sort-indicator">↕</span>
+              </th>
+              <th class="py-2 px-3 border-b text-left text-sm cursor-pointer hover:bg-purple-200 hide-mobile" onclick="sortTeachersTable('email')">
+                Email <span class="sort-indicator">↕</span>
+              </th>
+              <th class="py-2 px-3 border-b text-left text-sm cursor-pointer hover:bg-purple-200 hide-mobile" onclick="sortTeachersTable('age')">
+                Age <span class="sort-indicator">↕</span>
+              </th>
+              <th class="py-2 px-3 border-b text-left text-sm cursor-pointer hover:bg-purple-200 hide-mobile" onclick="sortTeachersTable('gender')">
+                Gender <span class="sort-indicator">↕</span>
+              </th>
+              <th class="py-2 px-3 border-b text-left text-sm">Classes</th>
+              <th class="py-2 px-3 border-b text-center text-sm">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="teacherTableBody" class="divide-y divide-gray-200 bg-white"></tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="flex flex-col md:flex-row items-center justify-between mt-4 pt-4 border-t gap-3">
+        <div class="text-sm text-gray-600">
+          Showing <span id="teachersShowingFrom">0</span> to <span id="teachersShowingTo">0</span> 
+          of <span id="teachersTotalRecords">0</span> teachers
         </div>
+        
+        <div class="flex items-center gap-2">
+          <button id="teachersPrevPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            ← Previous
+          </button>
+          <span id="teachersCurrentPage" class="px-3 py-1 text-sm font-medium">Page 1</span>
+          <button id="teachersNextPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            Next →
+          </button>
+        </div>
+        
+        <select id="teachersItemsPerPage" class="border rounded px-2 py-1 text-sm">
+          <option value="10">10 per page</option>
+          <option value="25">25 per page</option>
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
-        <div id="settingsNotification" class="hidden mx-6 mt-4 p-3 rounded-lg"></div>
+  <!-- Edit Teacher Modal -->
+  <div id="editTeacherModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg w-11/12 md:w-1/2 p-6 relative">
+      <button id="closeEditModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold">×</button>
+      <h2 class="text-2xl font-bold mb-4 text-purple-600">Edit Teacher</h2>
+      <form id="editTeacherForm" class="space-y-3">
+        <input type="hidden" id="editTeacherId" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Name</label>
+          <input id="editName" type="text" class="w-full border rounded px-3 py-2" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <input id="editEmail" type="email" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Gender</label>
+          <select id="editGender" class="w-full border rounded px-3 py-2">
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Contact Info</label>
+          <input id="editContact" type="text" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Assigned Classes</label>
+          <textarea id="editClasses" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+        <div class="flex justify-end space-x-2 mt-4">
+          <button type="button" id="cancelEditBtn" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        <div class="p-6 custom-scrollbar" style="flex: 1; overflow-y: auto; overflow-x: hidden;">
-          <form id="systemSettingsForm" class="space-y-6">
+  <!-- Students Modal -->
+  <div id="studentsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white w-full max-w-7xl rounded-lg shadow-lg p-4 sm:p-6 relative max-h-[90vh] overflow-hidden flex flex-col">
+      <button id="closeStudentsModal" class="absolute top-3 right-3 text-gray-700 hover:text-gray-900 font-bold text-xl z-10">&times;</button>
+      
+      <!-- Header -->
+      <div class="mb-4">
+        <h2 class="text-xl sm:text-2xl font-bold mb-3 flex items-center gap-2 text-blue-600">
+          <span class="material-symbols-outlined">school</span>
+          Students List
+        </h2>
+        
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+            <div class="text-2xl font-bold text-blue-600" id="totalStudentsCount">0</div>
+            <div class="text-xs text-gray-600">Total Students</div>
+          </div>
+          <div class="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
+            <div class="text-2xl font-bold text-cyan-600" id="maleStudentsCount">0</div>
+            <div class="text-xs text-gray-600">Male</div>
+          </div>
+          <div class="bg-pink-50 rounded-lg p-3 border border-pink-200">
+            <div class="text-2xl font-bold text-pink-600" id="femaleStudentsCount">0</div>
+            <div class="text-xs text-gray-600">Female</div>
+          </div>
+          <div class="bg-green-50 rounded-lg p-3 border border-green-200">
+            <div class="text-2xl font-bold text-green-600" id="activeSectionsCount">0</div>
+            <div class="text-xs text-gray-600">Sections</div>
+          </div>
+        </div>
+        
+        <!-- Search & Export Row -->
+        <div class="flex flex-col md:flex-row gap-3 mb-3">
+          <div class="relative flex-1">
+            <input type="text" id="studentSearch" 
+                   placeholder="🔍 Search by name, ID, email..."
+                   class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300">
+            <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
+          </div>
+          <div class="flex gap-2">
+            <button id="exportStudentsCSV" class="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm whitespace-nowrap">
+              <span class="material-symbols-outlined text-sm">download</span>
+              Export CSV
+            </button>
+            <button id="refreshStudentsList" class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
+              <span class="material-symbols-outlined text-sm">refresh</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Filters Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <select id="filterStudentGrade" class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-300">
+            <option value="">All Grades</option>
+            <option value="10">Grade 10</option>
+            <option value="11">Grade 11</option>
+            <option value="12">Grade 12</option>
+          </select>
+          
+          <select name="section_Level" id="Section_level" class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-300">
+            <option value="">All Sections</option>
+          </select>
+          
+          <select id="filterStudentGender" class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-300">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <button id="clearStudentFilters" class="bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 text-sm font-medium">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+      
+      <!-- Bulk Action Bar (Hidden by default) -->
+      <div id="bulkActionBar" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+          <span class="text-sm"><strong id="selectedCount">0</strong> students selected</span>
+          <div class="flex gap-2">
+            <button id="bulkExportSelected" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
+              Export Selected
+            </button>
+            <button id="deselectAll" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm">
+              Deselect All
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Table Container -->
+      <div class="overflow-auto custom-scrollbar flex-1" style="max-height: 400px;">
+        <table class="w-full border-collapse border">
+          <thead class="bg-blue-100 sticky top-0">
+            <tr>
+              <th class="border p-2 text-sm w-12">
+                <input type="checkbox" id="selectAllStudents" class="w-4 h-4 cursor-pointer">
+              </th>
+              <th class="border p-2 text-sm cursor-pointer hover:bg-blue-200" onclick="sortStudentsTable('photo')">Photo</th>
+              <th class="border p-2 text-sm cursor-pointer hover:bg-blue-200" onclick="sortStudentsTable('student_id')">
+                Student ID <span class="sort-indicator">↕</span>
+              </th>
+              <th class="border p-2 text-sm cursor-pointer hover:bg-blue-200" onclick="sortStudentsTable('name')">
+                Name <span class="sort-indicator">↕</span>
+              </th>
+              <th class="border p-2 text-sm cursor-pointer hover:bg-blue-200" onclick="sortStudentsTable('grade_level')">
+                Grade & Section <span class="sort-indicator">↕</span>
+              </th>
+              <th class="border p-2 text-sm cursor-pointer hover:bg-blue-200 hide-mobile" onclick="sortStudentsTable('email')">
+                Email <span class="sort-indicator">↕</span>
+              </th>
+              <th class="border p-2 text-sm cursor-pointer hover:bg-blue-200 hide-mobile" onclick="sortStudentsTable('gender')">
+                Gender <span class="sort-indicator">↕</span>
+              </th>
+              <th class="border p-2 text-sm text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTableBody"></tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="flex flex-col md:flex-row items-center justify-between mt-4 pt-4 border-t gap-3">
+        <div class="text-sm text-gray-600">
+          Showing <span id="studentsShowingFrom">0</span> to <span id="studentsShowingTo">0</span> 
+          of <span id="studentsTotalRecords">0</span> students
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <button id="studentsPrevPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            ← Previous
+          </button>
+          <span id="studentsCurrentPage" class="px-3 py-1 text-sm font-medium">Page 1</span>
+          <button id="studentsNextPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            Next →
+          </button>
+        </div>
+        
+        <select id="studentsItemsPerPage" class="border rounded px-2 py-1 text-sm">
+          <option value="10">10 per page</option>
+          <option value="25">25 per page</option>
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms & Conditions Modal -->
+  <div id="termsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
+      <h2 class="text-lg font-bold mb-4">Terms & Conditions - Facial Encodings</h2>
+      <p class="mb-4 text-gray-700 text-sm">
+        By proceeding, you agree that this student's facial data will be captured and stored for identification purposes. 
+        The data will be securely stored and only used for authorized recognition in school-related activities.
+      </p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="declineTerms" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Decline</button>
+        <button type="button" id="acceptTerms" class="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600">Accept</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Settings Modal (Keep existing) -->
+  <div id="systemSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl relative flex flex-col" style="max-height: 90vh;">
+      <button id="closeSettingsModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold z-10">×</button>
+      
+      <div class="p-6 border-b" style="flex-shrink: 0;">
+        <h2 class="text-2xl font-bold text-orange-600 flex items-center gap-2">
+          <span class="material-symbols-outlined">settings</span>
+          System Settings
+        </h2>
+      </div>
+
+      <div id="settingsNotification" class="hidden mx-6 mt-4 p-3 rounded-lg"></div>
+
+      <div class="p-6 custom-scrollbar" style="flex: 1; overflow-y: auto; overflow-x: hidden;">
+        <form id="systemSettingsForm" class="space-y-6">
+          <!-- Keep all existing settings form content -->
           <!-- School Information Section -->
           <div class="border-b pb-4">
             <h3 class="text-lg font-semibold mb-4 text-gray-800">School Information</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-1">School Name</label>
-                <input
-                  type="text"
-                  id="schoolName"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                  required
-                />
+                <input type="text" id="schoolName" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" required />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium mb-1">School Logo</label>
+                <div class="flex items-center gap-4">
+                  <div id="logoPreview" class="flex-shrink-0">
+                    <img id="logoImage" src="" alt="School Logo" class="h-16 w-16 object-contain border rounded hidden">
+                    <div id="logoPlaceholder" class="h-16 w-16 bg-gray-100 rounded flex items-center justify-center">
+                      <span class="material-symbols-outlined text-gray-400">image</span>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <input type="file" id="schoolLogoFile" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300 file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-sm file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100" />
+                    <input type="hidden" id="schoolLogo" />
+                    <p class="text-xs text-gray-500 mt-1">Upload school logo (PNG, JPG, max 2MB)</p>
+                  </div>
+                </div>
               </div>
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium mb-1">School Address</label>
-                <input
-                  type="text"
-                  id="schoolAddress"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                />
+                <input type="text" id="schoolAddress" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" />
               </div>
               <div>
                 <label class="block text-sm font-medium mb-1">Contact Number</label>
-                <input
-                  type="text"
-                  id="schoolContact"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                />
+                <input type="text" id="schoolContact" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" />
               </div>
               <div>
                 <label class="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  id="schoolEmail"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                />
+                <input type="email" id="schoolEmail" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" />
               </div>
             </div>
           </div>
@@ -882,23 +1195,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium mb-1">Academic Year</label>
-                <input
-                  type="text"
-                  id="academicYear"
-                  placeholder="2025-2026"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                  required
-                />
+                <input type="text" id="academicYear" placeholder="2025-2026" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" required />
               </div>
               <div>
                 <label class="block text-sm font-medium mb-1">Current Term/Semester</label>
-                <input
-                  type="text"
-                  id="currentTerm"
-                  placeholder="1st Semester"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                  required
-                />
+                <input type="text" id="currentTerm" placeholder="1st Semester" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" required />
               </div>
             </div>
           </div>
@@ -906,33 +1207,24 @@
           <!-- Grade Configuration Section -->
           <div class="border-b pb-4">
             <h3 class="text-lg font-semibold mb-4 text-gray-800">Grade Configuration</h3>
-            <p class="text-sm text-gray-600 mb-4">Configure grade levels and their corresponding sections and subjects. Changes will update all dropdowns system-wide.</p>
+            <p class="text-sm text-gray-600 mb-4">Configure grade levels and their corresponding sections and subjects.</p>
             
-            <!-- Grade Levels -->
             <div class="mb-4">
               <label class="block text-sm font-medium mb-2">Grade Levels <span class="text-red-500">*</span></label>
-              <p class="text-xs text-gray-500 mb-2">Add all grade levels your school offers (e.g., 7, 8, 9, 10, 11, 12)</p>
+              <p class="text-xs text-gray-500 mb-2">Add all grade levels your school offers</p>
               <div id="gradeLevelsList" class="space-y-2"></div>
-              <button
-                type="button"
-                id="addGradeBtn"
-                class="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-              >
-                + Add Grade Level
-              </button>
+              <button type="button" id="addGradeBtn" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">+ Add Grade Level</button>
             </div>
 
-            <!-- Sections by Grade -->
             <div class="mb-4">
               <label class="block text-sm font-medium mb-2">Sections by Grade</label>
-              <p class="text-xs text-gray-500 mb-2">Define section names for each grade (e.g., Newton, Einstein, ABM, STEM)</p>
+              <p class="text-xs text-gray-500 mb-2">Define section names for each grade</p>
               <div id="sectionsList" class="space-y-3"></div>
             </div>
 
-            <!-- Subjects by Grade -->
             <div class="mb-4">
               <label class="block text-sm font-medium mb-2">Subjects by Grade</label>
-              <p class="text-xs text-gray-500 mb-2">Add subjects taught in each grade level (e.g., Math, Science, English)</p>
+              <p class="text-xs text-gray-500 mb-2">Add subjects taught in each grade level</p>
               <div id="subjectsList" class="space-y-3"></div>
             </div>
           </div>
@@ -940,47 +1232,26 @@
           <!-- Default Formula Weights Section -->
           <div class="border-b pb-4">
             <h3 class="text-lg font-semibold mb-4 text-gray-800">Default Scoring Formula</h3>
-            <p class="text-sm text-gray-600 mb-4">Set the default calculation formula for student performance. Final score = (Scores × Score %) + (Attendance × Attendance %). Must total 100%.</p>
+            <p class="text-sm text-gray-600 mb-4">Set the default calculation formula for student performance.</p>
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium mb-1">
                     Score Weight: <span id="scoreWeightDisplay" class="font-bold text-blue-600">70%</span>
                   </label>
-                  <input
-                    type="range"
-                    id="defaultScoreWeight"
-                    min="0"
-                    max="100"
-                    value="70"
-                    class="w-full"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">How much scores contribute to final grade</p>
+                  <input type="range" id="defaultScoreWeight" min="0" max="100" value="70" class="w-full" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">
                     Attendance Weight: <span id="attendanceWeightDisplay" class="font-bold text-blue-600">30%</span>
                   </label>
-                  <input
-                    type="range"
-                    id="defaultAttendanceWeight"
-                    min="0"
-                    max="100"
-                    value="30"
-                    class="w-full"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">How much attendance contributes to final grade</p>
+                  <input type="range" id="defaultAttendanceWeight" min="0" max="100" value="30" class="w-full" />
                 </div>
               </div>
               <div class="flex items-center gap-2 bg-blue-50 p-3 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="allowTeacherOverride"
-                  class="w-4 h-4"
-                />
+                <input type="checkbox" id="allowTeacherOverride" class="w-4 h-4" />
                 <label for="allowTeacherOverride" class="text-sm">
                   <span class="font-medium">Allow teachers to customize their own formula</span>
-                  <span class="block text-xs text-gray-600">Teachers can adjust weights in their dashboard settings</span>
                 </label>
               </div>
             </div>
@@ -989,72 +1260,223 @@
           <!-- System Preferences Section -->
           <div class="pb-4">
             <h3 class="text-lg font-semibold mb-4 text-gray-800">System Preferences</h3>
-            <p class="text-sm text-gray-600 mb-4">Define system-wide academic standards and requirements.</p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-sm font-medium mb-1">Minimum Attendance %</label>
-                <input
-                  type="number"
-                  id="minimumAttendance"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                />
-                <p class="text-xs text-gray-500 mt-1">Required attendance to pass</p>
+                <input type="number" id="minimumAttendance" min="0" max="100" step="0.1" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" />
               </div>
               <div>
                 <label class="block text-sm font-medium mb-1">Passing Grade</label>
-                <input
-                  type="number"
-                  id="passingGrade"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                />
-                <p class="text-xs text-gray-500 mt-1">Minimum grade to pass</p>
+                <input type="number" id="passingGrade" min="0" max="100" step="0.1" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" />
               </div>
               <div>
                 <label class="block text-sm font-medium mb-1">Honor Roll Grade</label>
-                <input
-                  type="number"
-                  id="honorRollGrade"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300"
-                />
-                <p class="text-xs text-gray-500 mt-1">Grade for honor roll status</p>
+                <input type="number" id="honorRollGrade" min="0" max="100" step="0.1" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-300" />
               </div>
             </div>
           </div>
 
-          <!-- Action Buttons -->
           <div class="flex justify-end gap-3 pt-4 border-t">
-            <button
-              type="button"
-              id="cancelSettingsBtn"
-              class="px-6 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors font-medium"
-            >
-              Save Settings
-            </button>
+            <button type="button" id="cancelSettingsBtn" class="px-6 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 font-medium">Cancel</button>
+            <button type="submit" class="px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 font-medium">Save Settings</button>
           </div>
-          </form>
-        </div>
+        </form>
       </div>
     </div>
+  </div>
 
-    <script src="{{ url_for('static', filename='js/adminJS.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/admin-settings.js') }}"></script>
-    
-    <!-- Virtual Keyboard JS -->
-    <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}"></script>
-  </body>
+  <script src="{{ url_for('static', filename='js/adminJS.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/admin-settings.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}"></script>
+  
+  <script>
+    // Modern Admin Dashboard JS
+    document.addEventListener('DOMContentLoaded', function() {
+      // Navigation handling
+      const navItems = document.querySelectorAll('.nav-item[data-view]');
+      const formSections = document.querySelectorAll('.form-section');
+      const pageTitle = document.getElementById('pageTitle');
+      
+      const viewTitles = {
+        'dashboard': 'Dashboard Overview',
+        'teachers': 'Manage Teachers',
+        'students': 'Manage Students'
+      };
+
+      navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          const view = this.dataset.view;
+          
+          // Update active nav
+          navItems.forEach(nav => nav.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Update sections
+          formSections.forEach(section => section.classList.remove('active'));
+          document.getElementById(view + 'View').classList.add('active');
+          
+          // Update title
+          pageTitle.textContent = viewTitles[view] || 'Admin Dashboard';
+          
+          // Close mobile sidebar if open
+          if (window.innerWidth < 1024) {
+            sidebar?.classList.remove('mobile-open');
+          }
+        });
+      });
+
+      // Quick action buttons
+      document.querySelectorAll('.quick-action-btn[data-view]').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const view = this.dataset.view;
+          const navItem = document.querySelector(`.nav-item[data-view="${view}"]`);
+          if (navItem) navItem.click();
+        });
+      });
+
+      // Mobile sidebar toggle
+      const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+      const sidebar = document.querySelector('.sidebar');
+      
+      if (mobileSidebarToggle) {
+        mobileSidebarToggle.addEventListener('click', function() {
+          sidebar.classList.toggle('mobile-open');
+        });
+      }
+
+      // Accordion functionality
+      document.querySelectorAll('.accordion-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+          const content = this.nextElementSibling;
+          const icon = this.querySelector('.material-symbols-outlined:last-child');
+          
+          content.classList.toggle('active');
+          icon.style.transform = content.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+      });
+
+      // Link sidebar buttons to existing functionality
+      document.getElementById('view-teachers-sidebar')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('view-teachers-btn')?.click();
+      });
+      
+      document.getElementById('view-students-sidebar')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('view-student-btn')?.click();
+      });
+      
+      document.getElementById('face-list-sidebar')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('face-list-btn')?.click();
+      });
+      
+      document.getElementById('system-settings-sidebar')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('system-settings-btn')?.click();
+      });
+      
+      document.getElementById('system-settings-quick')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('system-settings-btn')?.click();
+      });
+      
+      document.getElementById('view-teachers-quick')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('view-teachers-btn')?.click();
+      });
+      
+      document.getElementById('logout-sidebar')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('logout-btn')?.click();
+      });
+
+      // Load dashboard stats from API
+      async function loadDashboardStats() {
+        try {
+          const response = await fetch('/admin/api/dashboard-stats');
+          if (response.ok) {
+            const data = await response.json();
+            const totalTeachers = document.getElementById('totalTeachers');
+            const totalStudents = document.getElementById('totalStudents');
+            const totalFaces = document.getElementById('totalFaces');
+            const totalClasses = document.getElementById('totalClasses');
+            
+            if (totalTeachers) totalTeachers.textContent = data.total_teachers || '0';
+            if (totalStudents) totalStudents.textContent = data.total_students || '0';
+            if (totalFaces) totalFaces.textContent = data.total_faces || '0';
+            if (totalClasses) totalClasses.textContent = data.total_classes || '0';
+          }
+        } catch (error) {
+          console.log('Using default stats:', error);
+        }
+      }
+
+      // Load stats on page load
+      loadDashboardStats();
+
+      // Reload stats when switching to dashboard view
+      navItems.forEach(item => {
+        const originalClick = item.onclick;
+        item.addEventListener('click', function() {
+          const view = this.dataset.view;
+          if (view === 'dashboard') {
+            loadDashboardStats();
+          }
+        });
+      });
+
+      // Modal close functionality
+      const teacherModal = document.getElementById('teacherModal');
+      const studentsModal = document.getElementById('studentsModal');
+      const systemSettingsModal = document.getElementById('systemSettingsModal');
+      
+      // Close buttons
+      document.getElementById('closeModal')?.addEventListener('click', function() {
+        if (teacherModal) {
+          teacherModal.classList.add('hidden');
+          teacherModal.classList.remove('flex');
+        }
+      });
+
+      document.getElementById('closeStudentsModal')?.addEventListener('click', function() {
+        if (studentsModal) {
+          studentsModal.classList.add('hidden');
+          studentsModal.classList.remove('flex');
+        }
+      });
+
+      document.getElementById('closeSettingsModal')?.addEventListener('click', function() {
+        if (systemSettingsModal) {
+          systemSettingsModal.classList.add('hidden');
+          systemSettingsModal.classList.remove('flex');
+        }
+      });
+
+      // Close on outside click
+      [teacherModal, studentsModal, systemSettingsModal].forEach(modal => {
+        if (modal) {
+          modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+              modal.classList.add('hidden');
+              modal.classList.remove('flex');
+            }
+          });
+        }
+      });
+
+      // Close mobile sidebar when clicking outside
+      if (sidebar) {
+        document.addEventListener('click', function(e) {
+          if (window.innerWidth < 1024 && sidebar.classList.contains('mobile-open')) {
+            if (!sidebar.contains(e.target) && !mobileSidebarToggle?.contains(e.target)) {
+              sidebar.classList.remove('mobile-open');
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
 </html>

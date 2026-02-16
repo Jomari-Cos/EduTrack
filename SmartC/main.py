@@ -10,6 +10,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+import html
 
 import pickle
 import threading
@@ -32,7 +33,7 @@ from PIL import Image
 import face_system
 import threading
 from sqlalchemy import func
-from Sub_app.models import db, Student, Teacher, Attendance, Score, get_student_analytics, evaluate_student_status
+from Sub_app.models import db, Student, Teacher, Attendance, Score, SystemSettings, get_student_analytics, evaluate_student_status
 from Sub_app.admin import admin_bp
 from Sub_app.update_attendance import attendance_bp
 
@@ -360,7 +361,14 @@ def add_teacher():
 
 @app.route("/")
 def index():
-    return render_template("mainH.html")
+    # Get or create system settings
+    system_settings = SystemSettings.query.first()
+    if not system_settings:
+        system_settings = SystemSettings()
+        db.session.add(system_settings)
+        db.session.commit()
+    
+    return render_template("mainH.html", system_settings=system_settings)
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -562,91 +570,144 @@ def send_student_report():
             # Fallback: Rule-based insight generation
             try:
                 # Calculate metrics
-                if subject_averages:
+                if subject_averages and len(subject_averages) > 0:
                     avg_score = round(sum(subject_averages.values()) / len(subject_averages), 2)
                     max_subject = max(subject_averages.items(), key=lambda x: x[1])
                     min_subject = min(subject_averages.items(), key=lambda x: x[1])
+                    has_scores = True
                 else:
                     avg_score = 0
-                    max_subject = ("N/A", 0)
-                    min_subject = ("N/A", 0)
+                    max_subject = ("No Scores", 0)
+                    min_subject = ("No Scores", 0)
+                    has_scores = False
                 
                 # Classify attendance
                 if attendance_rate >= 90:
                     attendance_class = "Excellent"
+                    attendance_desc = "outstanding"
                 elif attendance_rate >= 80:
                     attendance_class = "Good"
+                    attendance_desc = "good"
                 elif attendance_rate >= 70:
                     attendance_class = "Fair"
+                    attendance_desc = "fair"
                 else:
                     attendance_class = "Needs Improvement"
+                    attendance_desc = "below expected standards"
                 
-                # Classify overall performance
-                if avg_score >= 90:
-                    performance_class = "Excellent"
-                elif avg_score >= 80:
-                    performance_class = "Good"
-                elif avg_score >= 70:
-                    performance_class = "Fair"
+                # Classify overall performance (only if has scores)
+                if has_scores:
+                    if avg_score >= 90:
+                        performance_class = "Excellent"
+                        performance_desc = "exceptional"
+                    elif avg_score >= 80:
+                        performance_class = "Good"
+                        performance_desc = "strong"
+                    elif avg_score >= 70:
+                        performance_class = "Fair"
+                        performance_desc = "satisfactory"
+                    else:
+                        performance_class = "Needs Improvement"
+                        performance_desc = "requiring attention"
                 else:
-                    performance_class = "Needs Improvement"
+                    performance_class = "Pending"
+                    performance_desc = "not yet evaluated"
                 
-                # Build insight text
+                # Build insight text with proper HTML line breaks
                 ai_insight = f"""1. OVERALL PERFORMANCE
 
-Attendance Rate: {attendance_rate}% ({attendance_class})
+Attendance Rate: {attendance_rate}% ({attendance_class})"""
+                
+                if has_scores:
+                    ai_insight += f"""
 Overall Academic Performance: {performance_class}
 Average Score: {avg_score}%
 
-{student.name} demonstrates {attendance_class.lower()} attendance with a {attendance_rate}% attendance rate. The overall academic performance is assessed as {performance_class.lower()} with an average score of {avg_score}% across all subjects.
+{student.name} demonstrates {attendance_desc} attendance with a {attendance_rate}% rate. Academic performance is {performance_desc}, showing an average of {avg_score}% across all subjects."""
+                else:
+                    ai_insight += f"""
+Overall Academic Performance: Pending Assessment
+Average Score: No scores recorded yet
+
+{student.name} demonstrates {attendance_desc} attendance with a {attendance_rate}% rate. Academic performance assessment is pending as no subject scores have been recorded yet."""
+                
+                ai_insight += """
 
 2. SUBJECT ANALYSIS
 
 """
                 
                 # Add subject-by-subject analysis
-                if subject_averages:
+                if has_scores:
                     for subject, score in sorted(subject_averages.items(), key=lambda x: x[1], reverse=True):
                         if score >= 90:
-                            classification = "Excellent"
+                            classification = "Excellent (90-100)"
                         elif score >= 80:
-                            classification = "Good"
+                            classification = "Good (80-89)"
                         elif score >= 70:
-                            classification = "Fair"
+                            classification = "Fair (70-79)"
                         else:
-                            classification = "Needs Improvement"
-                        ai_insight += f"• {subject}: {score}% - {classification}\n"
+                            classification = "Needs Improvement (<70)"
+                        ai_insight += f"• {subject}: {score}% — {classification}\n"
                 else:
-                    ai_insight += "• No subject scores available yet.\n"
+                    ai_insight += "No subject scores have been recorded for this student yet. Academic assessment will be available once scores are entered into the system.\n"
                 
                 ai_insight += f"""
 3. PERFORMANCE INDICATORS
-
-• Highest Subject: {max_subject[0]} ({max_subject[1]}%)
-• Lowest Subject: {min_subject[0]} ({min_subject[1]}%)
-• Overall Average: {avg_score}%
+"""
+                
+                if has_scores:
+                    ai_insight += f"""
+• Highest Performing Subject: {max_subject[0]} ({max_subject[1]}%)
+• Lowest Performing Subject: {min_subject[0]} ({min_subject[1]}%)
+• Overall Average Score: {avg_score}%
+• Number of Subjects: {len(subject_averages)}
 • Attendance Classification: {attendance_class}
 
 4. ANALYTICAL SUMMARY
 
-{student.name} is performing at a {performance_class.lower()} level academically with consistent attendance patterns. """
-                
-                if avg_score >= 85:
-                    ai_insight += "The student shows strong performance across subjects and should continue current study habits."
-                elif avg_score >= 75:
-                    ai_insight += "The student shows solid performance with room for improvement in weaker subjects."
-                elif avg_score >= 60:
-                    ai_insight += "The student would benefit from additional support in lower-performing subjects."
+"""
+                    if avg_score >= 85:
+                        ai_insight += f"{student.name} is performing at a {performance_desc} level with {attendance_desc} attendance. The student demonstrates strong academic abilities and should maintain current study practices."
+                    elif avg_score >= 75:
+                        ai_insight += f"{student.name} shows {performance_desc} academic performance with {attendance_desc} attendance. There is potential for improvement, particularly in lower-scoring subjects."
+                    elif avg_score >= 60:
+                        ai_insight += f"{student.name} demonstrates {performance_desc} academic performance with {attendance_desc} attendance. Additional academic support and tutoring in weaker subjects is recommended."
+                    else:
+                        ai_insight += f"{student.name} requires immediate academic intervention. Performance is {performance_desc} and would significantly benefit from one-on-one tutoring and enhanced study support."
                 else:
-                    ai_insight += "Immediate intervention and academic support is recommended to improve overall performance."
+                    ai_insight += f"""
+• Attendance Classification: {attendance_class}
+• Academic Scores: Not yet available
+• Assessment Status: Pending
+
+4. ANALYTICAL SUMMARY
+
+{student.name} currently has {attendance_desc} attendance ({attendance_rate}%). Once academic scores are recorded, a comprehensive performance analysis will be available. Regular attendance is crucial for academic success."""
                 
                 ai_insight_available = True
                 print(f"✅ Fallback AI Insight generated successfully ({len(ai_insight)} chars)")
+                print(f"   Has scores: {has_scores}, Avg: {avg_score}%, Attendance: {attendance_rate}%")
             except Exception as fallback_error:
-                print(f"❌ Fallback also failed: {str(fallback_error)}")
-                ai_insight = "Performance analysis unavailable at this time. Please contact your teacher for detailed feedback."
+                print(f"❌ Fallback generation failed: {str(fallback_error)}")
+                import traceback
+                traceback.print_exc()
+                ai_insight = """Performance Summary
+
+Unable to generate detailed analytics at this time due to a technical issue.
+
+Student Information:
+• Attendance and performance data is being tracked
+• Please contact your teacher for personalized feedback
+• This report will be updated once the system issue is resolved
+
+Thank you for your patience."""
+                ai_insight_available = True
         
         print(f"📄 AI Insight content preview: {ai_insight[:100]}...")
+        
+        # HTML escape the AI insight content for safe rendering
+        ai_insight_escaped = html.escape(ai_insight).replace('\n', '<br>')
         
         # Create email content
         email_body = f"""
@@ -736,7 +797,7 @@ Average Score: {avg_score}%
                             AI Performance Summary
                         </div>
                         <div class="ai-insight-content">
-                            {ai_insight}
+                            {ai_insight_escaped}
                         </div>
                     </div>
                     

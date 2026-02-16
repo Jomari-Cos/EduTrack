@@ -91,8 +91,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // -----------------------------
   const teacherToggle = document.getElementById("teacher-toggle");
   const studentToggle = document.getElementById("student-toggle");
-  const teacherSection = document.getElementById("teacher-section");
-  const studentSection = document.getElementById("student-section");
+  const teacherSection = document.getElementById("teachersView");
+  const studentSection = document.getElementById("studentsView");
   const faceEnrollmentBtn = document.getElementById("faceEnrollmentBtn");
 
   const classLevel = document.getElementById("classLevel");
@@ -965,8 +965,78 @@ const termsModal = document.getElementById("termsModal");
 const acceptBtn = document.getElementById("acceptTerms");
 const declineBtn = document.getElementById("declineTerms");
 
-// Get the form element
-const studentForm = document.querySelector("#student-section form");
+// Get the form element - Updated selector for new layout
+const studentForm = document.querySelector("#studentsView form");
+
+// ================================
+// 🔹 GENERATE STUDENT ID
+// ================================
+const generateStudentIdBtn = document.getElementById("generateStudentIdBtn");
+const studentIdInput = document.querySelector("input[name='student_id']");
+
+if (generateStudentIdBtn && studentIdInput) {
+  generateStudentIdBtn.addEventListener("click", async () => {
+    try {
+      // Generate ID using current year and 4 random digits
+      const currentYear = new Date().getFullYear(); // Get current year (e.g., 2026)
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // 4 random digits
+      const generatedId = `S${currentYear}${random}`;
+      
+      // Populate the input field
+      studentIdInput.value = generatedId;
+      
+      // Visual feedback
+      generateStudentIdBtn.textContent = "✓ Generated!";
+      generateStudentIdBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
+      generateStudentIdBtn.classList.add("bg-green-500");
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        generateStudentIdBtn.textContent = "Generate ID";
+        generateStudentIdBtn.classList.remove("bg-green-500");
+        generateStudentIdBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
+      }, 2000);
+    } catch (err) {
+      console.error("Error generating student ID:", err);
+      alert("Error generating ID. Please try again.");
+    }
+  });
+}
+
+// ================================
+// 🔹 GENERATE TEACHER ID
+// ================================
+const generateTeacherIdBtn = document.getElementById("generateTeacherIdBtn");
+const teacherIdInput = document.querySelector("input[name='teacher_id']");
+
+if (generateTeacherIdBtn && teacherIdInput) {
+  generateTeacherIdBtn.addEventListener("click", async () => {
+    try {
+      // Generate ID using current year and 4 random digits
+      const currentYear = new Date().getFullYear(); // Get current year (e.g., 2026)
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // 4 random digits
+      const generatedId = `T${currentYear}${random}`;
+      
+      // Populate the input field
+      teacherIdInput.value = generatedId;
+      
+      // Visual feedback
+      generateTeacherIdBtn.textContent = "✓ Generated!";
+      generateTeacherIdBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
+      generateTeacherIdBtn.classList.add("bg-green-500");
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        generateTeacherIdBtn.textContent = "Generate ID";
+        generateTeacherIdBtn.classList.remove("bg-green-500");
+        generateTeacherIdBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
+      }, 2000);
+    } catch (err) {
+      console.error("Error generating teacher ID:", err);
+      alert("Error generating ID. Please try again.");
+    }
+  });
+}
 
 // Show modal when clicking Add Student
 addStudentBtn.addEventListener("click", () => {
@@ -976,7 +1046,7 @@ addStudentBtn.addEventListener("click", () => {
 
 // Function to validate required fields
 function validateStudentForm() {
-  const studentSection = document.getElementById("student-section");
+  const studentSection = document.getElementById("studentsView");
   const firstName = studentSection.querySelector("input[name='first_name']").value.trim();
   const lastName = studentSection.querySelector("input[name='last_name']").value.trim();
   const studentId = studentSection.querySelector("input[name='student_id']").value.trim();
@@ -1021,4 +1091,866 @@ declineBtn.addEventListener("click", (e) => {
 document.getElementById("face-list-btn").addEventListener("click", function () {
   // If using a blueprint with a prefix, include it here
   window.location.href = "/admin/face_list";
+});
+
+// ===============================
+// 📊 ENHANCED TEACHERS LIST FUNCTIONALITY
+// ===============================
+
+let allTeachersData = [];
+let filteredTeachersData = [];
+let currentTeachersPage = 1;
+let teachersPerPage = 10;
+let teachersSortColumn = '';
+let teachersSortDirection = {};
+
+// Update statistics
+function updateTeachersStats(teachers) {
+  const total = teachers.length;
+  const male = teachers.filter(t => t.gender === 'Male').length;
+  const female = teachers.filter(t => t.gender === 'Female').length;
+  const avgClasses = total > 0 ? (teachers.reduce((sum, t) => sum + (t.assigned_classes?.length || 0), 0) / total).toFixed(1) : 0;
+  
+  document.getElementById('totalTeachersCount').textContent = total;
+  document.getElementById('maleTeachersCount').textContent = male;
+  document.getElementById('femaleTeachersCount').textContent = female;
+  document.getElementById('avgClassLoad').textContent = avgClasses;
+}
+
+// Populate subject filter dropdown
+function populateTeacherSubjectFilter(teachers) {
+  const subjects = new Set();
+  teachers.forEach(t => {
+    if (t.assigned_classes && Array.isArray(t.assigned_classes)) {
+      t.assigned_classes.forEach(cls => {
+        if (typeof cls === 'object') {
+          const subject = cls.subject || cls.subject_Level || cls.subjectLevel;
+          if (subject) subjects.add(subject);
+        }
+      });
+    }
+  });
+  
+  const filterSelect = document.getElementById('filterTeacherSubject');
+  filterSelect.innerHTML = '<option value="">All Subjects</option>';
+  Array.from(subjects).sort().forEach(subject => {
+    filterSelect.innerHTML += `<option value="${subject}">${subject}</option>`;
+  });
+}
+
+// Apply filters and search
+function filterTeachers() {
+  const searchTerm = document.getElementById('teacherSearch').value.toLowerCase();
+  const genderFilter = document.getElementById('filterTeacherGender').value;
+  const gradeFilter = document.getElementById('filterTeacherGrade').value;
+  const subjectFilter = document.getElementById('filterTeacherSubject').value;
+  
+  filteredTeachersData = allTeachersData.filter(teacher => {
+    // Search filter
+    const matchesSearch = !searchTerm || 
+      teacher.name.toLowerCase().includes(searchTerm) ||
+      teacher.teacher_id.toLowerCase().includes(searchTerm) ||
+      (teacher.email && teacher.email.toLowerCase().includes(searchTerm)) ||
+      (teacher.assigned_classes && Array.isArray(teacher.assigned_classes) && teacher.assigned_classes.some(cls => {
+        if (typeof cls === 'object') {
+          const subject = cls.subject || cls.subject_Level || cls.subjectLevel || '';
+          return subject.toLowerCase().includes(searchTerm);
+        }
+        return false;
+      }));
+    
+    // Gender filter
+    const matchesGender = !genderFilter || teacher.gender === genderFilter;
+    
+    // Grade filter
+    const matchesGrade = !gradeFilter || 
+      (teacher.assigned_classes && Array.isArray(teacher.assigned_classes) && teacher.assigned_classes.some(cls => {
+        if (typeof cls === 'object') {
+          const grade = cls.grade || cls.class_Level || cls.gradeLevel;
+          return grade === gradeFilter;
+        }
+        return false;
+      }));
+    
+    // Subject filter
+    const matchesSubject = !subjectFilter || 
+      (teacher.assigned_classes && Array.isArray(teacher.assigned_classes) && teacher.assigned_classes.some(cls => {
+        if (typeof cls === 'object') {
+          const subject = cls.subject || cls.subject_Level || cls.subjectLevel;
+          return subject === subjectFilter;
+        }
+        return false;
+      }));
+    
+    return matchesSearch && matchesGender && matchesGrade && matchesSubject;
+  });
+  
+  currentTeachersPage = 1;
+  updateTeachersStats(filteredTeachersData);
+  displayTeachersPage();
+}
+
+// Sort teachers table
+function sortTeachersTable(column) {
+  if (column === 'photo') return; // Don't sort by photo
+  
+  teachersSortDirection[column] = teachersSortDirection[column] === 'asc' ? 'desc' : 'asc';
+  
+  filteredTeachersData.sort((a, b) => {
+    let valA = a[column];
+    let valB = b[column];
+    
+    // Handle null/undefined
+    if (valA == null) valA = '';
+    if (valB == null) valB = '';
+    
+    // Convert to string for comparison
+    valA = valA.toString().toLowerCase();
+    valB = valB.toString().toLowerCase();
+    
+    if (teachersSortDirection[column] === 'asc') {
+      return valA > valB ? 1 : -1;
+    } else {
+      return valA < valB ? 1 : -1;
+    }
+  });
+  
+  displayTeachersPage();
+}
+
+// Display current page of teachers
+function displayTeachersPage() {
+  const tableBody = document.getElementById('teacherTableBody');
+  const startIndex = (currentTeachersPage - 1) * teachersPerPage;
+  const endIndex = startIndex + teachersPerPage;
+  const pageData = filteredTeachersData.slice(startIndex, endIndex);
+  
+  tableBody.innerHTML = '';
+  
+  if (pageData.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-8 text-gray-500">
+          <div class="flex flex-col items-center gap-2">
+            <span class="material-symbols-outlined text-4xl">search_off</span>
+            <p>No teachers found</p>
+          </div>
+        </td>
+      </tr>`;
+  } else {
+    pageData.forEach((t) => {
+      const photoUrl = t.photo || "https://via.placeholder.com/60?text=No+Image";
+      
+      // Format classes with badges - Handle multiple formats
+      let classesHTML = '';
+      if (t.assigned_classes && Array.isArray(t.assigned_classes) && t.assigned_classes.length > 0) {
+        classesHTML = t.assigned_classes.map(cls => {
+          // Handle both object format and string format
+          if (typeof cls === 'string') {
+            // If it's a string, display as-is
+            return `<span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mr-1 mb-1 whitespace-nowrap">
+              ${cls}
+            </span>`;
+          } else if (typeof cls === 'object') {
+            // Check for the property names (could be 'grade' or 'class_Level', etc.)
+            const grade = cls.grade || cls.class_Level || cls.gradeLevel || '?';
+            const section = cls.section || cls.section_Level || cls.sectionLevel || '?';
+            const subject = cls.subject || cls.subject_Level || cls.subjectLevel || '?';
+            
+            // Only display if we have valid data
+            if (grade !== '?' && section !== '?' && subject !== '?') {
+              return `<span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mr-1 mb-1 whitespace-nowrap">
+                Grade ${grade} - ${section} | ${subject}
+              </span>`;
+            }
+          }
+          return ''; // Skip invalid entries
+        }).filter(html => html).join(''); // Remove empty strings
+      }
+      
+      if (!classesHTML) {
+        classesHTML = '<span class="text-gray-400 text-xs">No classes assigned</span>';
+      }
+      
+      const row = `
+        <tr class="hover:bg-purple-50 transition">
+          <td class="py-2 px-3 text-center">
+            <img src="${photoUrl}" alt="${t.name}" 
+                 class="w-12 h-12 object-cover rounded-full border shadow-sm mx-auto">
+          </td>
+          <td class="py-2 px-3 font-semibold text-gray-800">${t.name}</td>
+          <td class="py-2 px-3">${t.teacher_id}</td>
+          <td class="py-2 px-3 hide-mobile">${t.email || 'N/A'}</td>
+          <td class="py-2 px-3 hide-mobile">${t.age ?? 'N/A'}</td>
+          <td class="py-2 px-3 hide-mobile">${t.gender ?? 'N/A'}</td>
+          <td class="py-2 px-3 text-sm">
+            ${classesHTML}
+          </td>
+          <td class="py-2 px-3 text-center">
+            <div class="flex gap-1 justify-center flex-wrap">
+              <button 
+                class="edit-btn bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition text-xs"
+                data-id="${t.id}">
+                Edit
+              </button>
+              <button 
+                class="delete-btn bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition text-xs"
+                data-id="${t.id}">
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      tableBody.insertAdjacentHTML("beforeend", row);
+    });
+  }
+  
+  updateTeachersPagination();
+}
+
+// Update pagination controls
+function updateTeachersPagination() {
+  const totalRecords = filteredTeachersData.length;
+  const totalPages = Math.ceil(totalRecords / teachersPerPage);
+  const startIndex = (currentTeachersPage - 1) * teachersPerPage + 1;
+  const endIndex = Math.min(startIndex + teachersPerPage - 1, totalRecords);
+  
+  document.getElementById('teachersShowingFrom').textContent = totalRecords > 0 ? startIndex : 0;
+  document.getElementById('teachersShowingTo').textContent = endIndex;
+  document.getElementById('teachersTotalRecords').textContent = totalRecords;
+  document.getElementById('teachersCurrentPage').textContent = `Page ${currentTeachersPage} of ${totalPages || 1}`;
+  
+  const prevBtn = document.getElementById('teachersPrevPage');
+  const nextBtn = document.getElementById('teachersNextPage');
+  
+  prevBtn.disabled = currentTeachersPage === 1;
+  nextBtn.disabled = currentTeachersPage >= totalPages;
+}
+
+// Export teachers to CSV
+function exportTeachersToCSV() {
+  const data = filteredTeachersData.map(t => ({
+    'Teacher ID': t.teacher_id,
+    'Name': t.name,
+    'Email': t.email || '',
+    'Gender': t.gender || '',
+    'Age': t.age || '',
+    'Contact': t.contact_info || '',
+    'Classes': t.assigned_classes ? t.assigned_classes.map(c => `${c.grade}-${c.section} ${c.subject}`).join('; ') : ''
+  }));
+  
+  if (data.length === 0) {
+    alert('No data to export');
+    return;
+  }
+  
+  const headers = Object.keys(data[0]);
+  const csv = [
+    headers.join(','),
+    ...data.map(row => headers.map(field => {
+      const value = row[field] || '';
+      return `"${value.toString().replace(/"/g, '""')}"`;
+    }).join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `teachers_list_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+// Initialize teachers modal event listeners
+function initTeachersModalListeners() {
+  // Search
+  document.getElementById('teacherSearch')?.addEventListener('input', filterTeachers);
+  
+  // Filters
+  document.getElementById('filterTeacherGender')?.addEventListener('change', filterTeachers);
+  document.getElementById('filterTeacherGrade')?.addEventListener('change', filterTeachers);
+  document.getElementById('filterTeacherSubject')?.addEventListener('change', filterTeachers);
+  
+  // Clear filters
+  document.getElementById('clearTeacherFilters')?.addEventListener('click', () => {
+    document.getElementById('teacherSearch').value = '';
+    document.getElementById('filterTeacherGender').value = '';
+    document.getElementById('filterTeacherGrade').value = '';
+    document.getElementById('filterTeacherSubject').value = '';
+    filterTeachers();
+  });
+  
+  // Export
+  document.getElementById('exportTeachersCSV')?.addEventListener('click', exportTeachersToCSV);
+  
+  // Refresh
+  document.getElementById('refreshTeachersList')?.addEventListener('click', () => {
+    document.getElementById('view-teachers-btn')?.click();
+  });
+  
+  // Pagination
+  document.getElementById('teachersPrevPage')?.addEventListener('click', () => {
+    if (currentTeachersPage > 1) {
+      currentTeachersPage--;
+      displayTeachersPage();
+    }
+  });
+  
+  document.getElementById('teachersNextPage')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredTeachersData.length / teachersPerPage);
+    if (currentTeachersPage < totalPages) {
+      currentTeachersPage++;
+      displayTeachersPage();
+    }
+  });
+  
+  document.getElementById('teachersItemsPerPage')?.addEventListener('change', (e) => {
+    teachersPerPage = parseInt(e.target.value);
+    currentTeachersPage = 1;
+    displayTeachersPage();
+  });
+}
+
+// Override the original view teachers button click
+const originalViewTeachersBtn = document.getElementById("view-teachers-btn");
+if (originalViewTeachersBtn) {
+  originalViewTeachersBtn.removeEventListener('click', originalViewTeachersBtn.onclick);
+  originalViewTeachersBtn.addEventListener("click", async () => {
+    const modal = document.getElementById("teacherModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    try {
+      const res = await fetch(`${API_BASE}/teachers`);
+      const teachers = await res.json();
+
+      // Debug: Log the first teacher's classes structure
+      if (teachers.length > 0 && teachers[0].assigned_classes) {
+        console.log('🔍 Sample teacher data:', teachers[0]);
+        console.log('🔍 Sample assigned_classes type:', typeof teachers[0].assigned_classes);
+        console.log('🔍 Sample assigned_classes content:', teachers[0].assigned_classes);
+        if (Array.isArray(teachers[0].assigned_classes) && teachers[0].assigned_classes.length > 0) {
+          console.log('🔍 First class object:', teachers[0].assigned_classes[0]);
+        }
+      }
+
+      allTeachersData = teachers;
+      filteredTeachersData = teachers;
+      
+      updateTeachersStats(teachers);
+      populateTeacherSubjectFilter(teachers);
+      displayTeachersPage();
+      
+    } catch (err) {
+      console.error("Error fetching teachers:", err);
+      document.getElementById('teacherTableBody').innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-8">
+            <div class="text-red-500 mb-2">
+              <span class="material-symbols-outlined text-4xl">error</span>
+            </div>
+            <p class="text-gray-700">Failed to load teachers</p>
+            <button onclick="location.reload()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+              Retry
+            </button>
+          </td>
+        </tr>`;
+    }
+  });
+}
+
+// ===============================
+// 📚 ENHANCED STUDENTS LIST FUNCTIONALITY
+// ===============================
+
+let allStudentsData = [];
+let filteredStudentsData = [];
+let currentStudentsPage = 1;
+let studentsPerPage = 10;
+let studentsSortColumn = '';
+let studentsSortDirection = {};
+let selectedStudents = new Set();
+
+// Update statistics
+function updateStudentsStats(students) {
+  const total = students.length;
+  const male = students.filter(s => s.gender === 'Male').length;
+  const female = students.filter(s => s.gender === 'Female').length;
+  const sections = new Set(students.map(s => s.section)).size;
+  
+  document.getElementById('totalStudentsCount').textContent = total;
+  document.getElementById('maleStudentsCount').textContent = male;
+  document.getElementById('femaleStudentsCount').textContent = female;
+  document.getElementById('activeSectionsCount').textContent = sections;
+}
+
+// Apply filters and search
+function filterStudents() {
+  const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+  const gradeFilter = document.getElementById('filterStudentGrade').value;
+  const sectionFilter = document.getElementById('Section_level').value;
+  const genderFilter = document.getElementById('filterStudentGender').value;
+  
+  filteredStudentsData = allStudentsData.filter(student => {
+    // Search filter
+    const matchesSearch = !searchTerm || 
+      student.name.toLowerCase().includes(searchTerm) ||
+      student.student_id.toLowerCase().includes(searchTerm) ||
+      (student.email && student.email.toLowerCase().includes(searchTerm));
+    
+    // Grade filter
+    const matchesGrade = !gradeFilter || student.grade_level === gradeFilter;
+    
+    // Section filter  
+    const matchesSection = !sectionFilter || student.section === sectionFilter;
+    
+    // Gender filter
+    const matchesGender = !genderFilter || student.gender === genderFilter;
+    
+    return matchesSearch && matchesGrade && matchesSection && matchesGender;
+  });
+  
+  currentStudentsPage = 1;
+  updateStudentsStats(filteredStudentsData);
+  displayStudentsPage();
+}
+
+// Sort students table
+function sortStudentsTable(column) {
+  if (column === 'photo') return;
+  
+  studentsSortDirection[column] = studentsSortDirection[column] === 'asc' ? 'desc' : 'asc';
+  
+  filteredStudentsData.sort((a, b) => {
+    let valA = a[column];
+    let valB = b[column];
+    
+    if (valA == null) valA = '';
+    if (valB == null) valB = '';
+    
+    valA = valA.toString().toLowerCase();
+    valB = valB.toString().toLowerCase();
+    
+    if (studentsSortDirection[column] === 'asc') {
+      return valA > valB ? 1 : -1;
+    } else {
+      return valA < valB ? 1 : -1;
+    }
+  });
+  
+  displayStudentsPage();
+}
+
+// Display current page of students
+function displayStudentsPage() {
+  const tableBody = document.getElementById('studentsTableBody');
+  const startIndex = (currentStudentsPage - 1) * studentsPerPage;
+  const endIndex = startIndex + studentsPerPage;
+  const pageData = filteredStudentsData.slice(startIndex, endIndex);
+  
+  tableBody.innerHTML = '';
+  
+  if (pageData.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-8 text-gray-500">
+          <div class="flex flex-col items-center gap-2">
+            <span class="material-symbols-outlined text-4xl">search_off</span>
+            <p>No students found</p>
+          </div>
+        </td>
+      </tr>`;
+  } else {
+    pageData.forEach(student => {
+      const photoUrl = student.image
+        ? `/static/uploads/${student.image}`
+        : "https://via.placeholder.com/60?text=No+Image";
+      
+      const isSelected = selectedStudents.has(student.id);
+      
+      const row = document.createElement("tr");
+      row.className = isSelected ? "bg-blue-50" : "hover:bg-blue-50 transition";
+      row.innerHTML = `
+        <td class="border p-2 text-center">
+          <input type="checkbox" class="student-checkbox w-4 h-4 cursor-pointer" 
+                 data-id="${student.id}" ${isSelected ? 'checked' : ''}>
+        </td>
+        <td class="border p-2 text-center">
+          <img src="${photoUrl}" alt="${student.name}" 
+               class="w-12 h-12 object-cover rounded-full mx-auto border shadow-sm">
+        </td>
+        <td class="border p-2 font-semibold">${student.student_id}</td>
+        <td class="border p-2">${student.name}</td>
+        <td class="border p-2">Grade ${student.grade_level} - ${student.section}</td>
+        <td class="border p-2 hide-mobile">${student.email || 'N/A'}</td>
+        <td class="border p-2 hide-mobile">${student.gender || 'N/A'}</td>
+        <td class="border p-2 text-center">
+          <div class="flex gap-1 justify-center">
+            <button class="view-student-btn bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
+                    data-id="${student.id}" title="View Details">
+              <span class="material-symbols-outlined text-sm">visibility</span>
+            </button>
+            <button class="edit-student-btn bg-yellow-500 text-white px-2 py-1 rounded text-xs hover:bg-yellow-600"
+                    data-id="${student.id}" title="Edit">
+              <span class="material-symbols-outlined text-sm">edit</span>
+            </button>
+          </div>
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+    
+    // Add event listeners for checkboxes
+    document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', handleStudentSelection);
+    });
+    
+    // Add event listeners for action buttons
+    document.querySelectorAll('.view-student-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const studentId = e.currentTarget.dataset.id;
+        viewStudentDetails(studentId);
+      });
+    });
+    
+    document.querySelectorAll('.edit-student-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const studentId = e.currentTarget.dataset.id;
+        editStudent(studentId);
+      });
+    });
+  }
+  
+  updateStudentsPagination();
+}
+
+// Handle student selection
+function handleStudentSelection(e) {
+  const studentId = parseInt(e.target.dataset.id);
+  if (e.target.checked) {
+    selectedStudents.add(studentId);
+  } else {
+    selectedStudents.delete(studentId);
+  }
+  updateBulkActionBar();
+}
+
+// Update bulk action bar
+function updateBulkActionBar() {
+  const bulkBar = document.getElementById('bulkActionBar');
+  const selectedCount = document.getElementById('selectedCount');
+  
+  if (selectedStudents.size > 0) {
+    bulkBar.classList.remove('hidden');
+    selectedCount.textContent = selectedStudents.size;
+  } else {
+    bulkBar.classList.add('hidden');
+  }
+}
+
+// Update pagination controls
+function updateStudentsPagination() {
+  const totalRecords = filteredStudentsData.length;
+  const totalPages = Math.ceil(totalRecords / studentsPerPage);
+  const startIndex = (currentStudentsPage - 1) * studentsPerPage + 1;
+  const endIndex = Math.min(startIndex + studentsPerPage - 1, totalRecords);
+  
+  document.getElementById('studentsShowingFrom').textContent = totalRecords > 0 ? startIndex : 0;
+  document.getElementById('studentsShowingTo').textContent = endIndex;
+  document.getElementById('studentsTotalRecords').textContent = totalRecords;
+  document.getElementById('studentsCurrentPage').textContent = `Page ${currentStudentsPage} of ${totalPages || 1}`;
+  
+  const prevBtn = document.getElementById('studentsPrevPage');
+  const nextBtn = document.getElementById('studentsNextPage');
+  
+  prevBtn.disabled = currentStudentsPage === 1;
+  nextBtn.disabled = currentStudentsPage >= totalPages;
+}
+
+// Export students to CSV
+function exportStudentsToCSV(selectedOnly = false) {
+  let dataToExport = filteredStudentsData;
+  
+  if (selectedOnly && selectedStudents.size > 0) {
+    dataToExport = filteredStudentsData.filter(s => selectedStudents.has(s.id));
+  }
+  
+  const data = dataToExport.map(s => ({
+    'Student ID': s.student_id,
+    'Name': s.name,
+    'Grade Level': s.grade_level,
+    'Section': s.section,
+    'Email': s.email || '',
+    'Gender': s.gender || '',
+    'Guardian Name': s.guardian_name || '',
+    'Guardian Contact': s.guardian_contact || ''
+  }));
+  
+  if (data.length === 0) {
+    alert('No data to export');
+    return;
+  }
+  
+  const headers = Object.keys(data[0]);
+  const csv = [
+    headers.join(','),
+    ...data.map(row => headers.map(field => {
+      const value = row[field] || '';
+      return `"${value.toString().replace(/"/g, '""')}"`;
+    }).join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `students_list_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+// View student details (placeholder)
+function viewStudentDetails(studentId) {
+  const student = allStudentsData.find(s => s.id == studentId);
+  if (student) {
+    alert(`Student Details:\n\nID: ${student.student_id}\nName: ${student.name}\nGrade: ${student.grade_level}\nSection: ${student.section}\nEmail: ${student.email}\nGuardian: ${student.guardian_name}`);
+  }
+}
+
+// Edit student
+function editStudent(studentId) {
+  const student = allStudentsData.find(s => s.id == studentId);
+  if (!student) {
+    alert('Student not found');
+    return;
+  }
+  
+  // Handle name fields - parse from full name if individual fields not available
+  let firstName = student.first_name || '';
+  let lastName = student.last_name || '';
+  let middleInitial = student.middle_initial || '';
+  
+  // If individual fields are empty but we have a full name, parse it
+  if (!firstName && !lastName && student.name) {
+    const nameParts = student.name.split(' ');
+    if (nameParts.length >= 2) {
+      firstName = nameParts[0];
+      lastName = nameParts[nameParts.length - 1];
+      // Check for middle initial (single letter or letter with period)
+      if (nameParts.length > 2) {
+        const middle = nameParts.slice(1, -1).join(' ');
+        if (middle.length <= 2) {
+          middleInitial = middle.replace('.', '');
+        }
+      }
+    }
+  }
+  
+  // Populate the edit form
+  document.getElementById('editStudentId').value = student.id;
+  document.getElementById('editStudentFirstName').value = firstName;
+  document.getElementById('editStudentLastName').value = lastName;
+  document.getElementById('editStudentMiddleInitial').value = middleInitial;
+  document.getElementById('editStudentStudentId').value = student.student_id || '';
+  document.getElementById('editStudentEmail').value = student.email || '';
+  document.getElementById('editStudentGender').value = student.gender || '';
+  document.getElementById('editStudentGradeLevel').value = student.grade_level || '';
+  document.getElementById('editStudentSection').value = student.section || '';
+  document.getElementById('editStudentContact').value = student.contact_info || '';
+  document.getElementById('editStudentGuardianName').value = student.guardian_name || '';
+  document.getElementById('editStudentGuardianContact').value = student.guardian_contact || '';
+  
+  // Show modal
+  const modal = document.getElementById('editStudentModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+// Close edit student modal
+function closeEditStudentModal() {
+  const modal = document.getElementById('editStudentModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+// Handle edit student form submission
+async function handleEditStudentSubmit(e) {
+  e.preventDefault();
+  
+  const studentId = document.getElementById('editStudentId').value;
+  const data = {
+    first_name: document.getElementById('editStudentFirstName').value,
+    last_name: document.getElementById('editStudentLastName').value,
+    middle_initial: document.getElementById('editStudentMiddleInitial').value,
+    student_id: document.getElementById('editStudentStudentId').value,
+    email: document.getElementById('editStudentEmail').value,
+    gender: document.getElementById('editStudentGender').value,
+    grade_level: document.getElementById('editStudentGradeLevel').value,
+    section: document.getElementById('editStudentSection').value,
+    contact_info: document.getElementById('editStudentContact').value,
+    guardian_name: document.getElementById('editStudentGuardianName').value,
+    guardian_contact: document.getElementById('editStudentGuardianContact').value
+  };
+  
+  try {
+    const response = await fetch(`/admin/api/student/${studentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      alert('✅ Student updated successfully!');
+      closeEditStudentModal();
+      // Refresh the students list
+      document.getElementById('view-student-btn')?.click();
+    } else {
+      alert(`❌ Failed: ${result.error || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Update error:', error);
+    alert('Failed to connect to server.');
+  }
+}
+
+// Initialize students modal event listeners
+function initStudentsModalListeners() {
+  // Search
+  document.getElementById('studentSearch')?.addEventListener('input', filterStudents);
+  
+  // Filters
+  document.getElementById('filterStudentGrade')?.addEventListener('change', filterStudents);
+  document.getElementById('Section_level')?.addEventListener('change', filterStudents);
+  document.getElementById('filterStudentGender')?.addEventListener('change', filterStudents);
+  
+  // Clear filters
+  document.getElementById('clearStudentFilters')?.addEventListener('click', () => {
+    document.getElementById('studentSearch').value = '';
+    document.getElementById('filterStudentGrade').value = '';
+    document.getElementById('Section_level').value = '';
+    document.getElementById('filterStudentGender').value = '';
+    filterStudents();
+  });
+  
+  // Export
+  document.getElementById('exportStudentsCSV')?.addEventListener('click', () => exportStudentsToCSV(false));
+  document.getElementById('bulkExportSelected')?.addEventListener('click', () => exportStudentsToCSV(true));
+  
+  // Refresh
+  document.getElementById('refreshStudentsList')?.addEventListener('click', () => {
+    document.getElementById('view-student-btn')?.click();
+  });
+  
+  // Select all checkbox
+  document.getElementById('selectAllStudents')?.addEventListener('change', (e) => {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = e.target.checked;
+      const studentId = parseInt(cb.dataset.id);
+      if (e.target.checked) {
+        selectedStudents.add(studentId);
+      } else {
+        selectedStudents.delete(studentId);
+      }
+    });
+    updateBulkActionBar();
+    displayStudentsPage();
+  });
+  
+  // Deselect all
+  document.getElementById('deselectAll')?.addEventListener('click', () => {
+    selectedStudents.clear();
+    document.getElementById('selectAllStudents').checked = false;
+    updateBulkActionBar();
+    displayStudentsPage();
+  });
+  
+  // Pagination
+  document.getElementById('studentsPrevPage')?.addEventListener('click', () => {
+    if (currentStudentsPage > 1) {
+      currentStudentsPage--;
+      displayStudentsPage();
+    }
+  });
+  
+  document.getElementById('studentsNextPage')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredStudentsData.length / studentsPerPage);
+    if (currentStudentsPage < totalPages) {
+      currentStudentsPage++;
+      displayStudentsPage();
+    }
+  });
+  
+  document.getElementById('studentsItemsPerPage')?.addEventListener('change', (e) => {
+    studentsPerPage = parseInt(e.target.value);
+    currentStudentsPage = 1;
+    displayStudentsPage();
+  });
+  
+  // Edit student modal event listeners
+  document.getElementById('closeEditStudentModal')?.addEventListener('click', closeEditStudentModal);
+  document.getElementById('cancelEditStudentBtn')?.addEventListener('click', closeEditStudentModal);
+  document.getElementById('editStudentForm')?.addEventListener('submit', handleEditStudentSubmit);
+}
+
+// Override the original view students button
+const originalViewStudentsBtn = document.getElementById("view-student-btn");
+if (originalViewStudentsBtn) {
+  // Remove old listeners
+  const newViewStudentsBtn = originalViewStudentsBtn.cloneNode(true);
+  originalViewStudentsBtn.parentNode.replaceChild(newViewStudentsBtn, originalViewStudentsBtn);
+  
+  newViewStudentsBtn.addEventListener("click", async () => {
+    const modal = document.getElementById("studentsModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    try {
+      const res = await fetch("/admin/api/students");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const students = await res.json();
+
+      allStudentsData = students;
+      filteredStudentsData = students;
+      selectedStudents.clear();
+      
+      // Populate section filter
+      const sections = [...new Set(students.map(s => s.section))].sort();
+      const sectionFilter = document.getElementById('Section_level');
+      sectionFilter.innerHTML = '<option value="">All Sections</option>';
+      sections.forEach(sec => {
+        sectionFilter.innerHTML += `<option value="${sec}">${sec}</option>`;
+      });
+      
+      updateStudentsStats(students);
+      displayStudentsPage();
+      
+    } catch (err) {
+      console.error("Error loading students:", err);
+      document.getElementById('studentsTableBody').innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-8">
+            <div class="text-red-500 mb-2">
+              <span class="material-symbols-outlined text-4xl">error</span>
+            </div>
+            <p class="text-gray-700">Failed to load students</p>
+            <button onclick="location.reload()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+              Retry
+            </button>
+          </td>
+        </tr>`;
+    }
+  });
+}
+
+// Make sort functions globally available
+window.sortTeachersTable = sortTeachersTable;
+window.sortStudentsTable = sortStudentsTable;
+
+// Initialize all listeners after DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  initTeachersModalListeners();
+  initStudentsModalListeners();
 });

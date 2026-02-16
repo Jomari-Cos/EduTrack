@@ -120,6 +120,20 @@
     background: #8a9299;
 }
 
+.keyboard-key.enter {
+    background: #007AFF;
+    color: #fff;
+    font-weight: 600;
+}
+
+.keyboard-key.enter:hover {
+    background: #0051D5;
+}
+
+.keyboard-key.enter:active {
+    background: #003D99;
+}
+
 .keyboard-key.space {
     flex: 4;
 }
@@ -137,7 +151,8 @@
 
 .keyboard-key.backspace,
 .keyboard-key.enter {
-    flex: 1.5;
+    flex: 2;
+    font-weight: 500;
 }
 
 .keyboard-key.special {

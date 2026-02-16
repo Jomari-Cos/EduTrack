@@ -89,7 +89,7 @@ class VirtualKeyboard {
                         <button class="keyboard-key special" data-key="@">@</button>
                         <button class="keyboard-key special space" data-key=" ">space</button>
                         <button class="keyboard-key special" data-key=".">.</button>
-                        <button class="keyboard-key special enter" data-key="Enter">return</button>
+                        <button class="keyboard-key special enter" data-key="Enter">↵ Enter</button>
                     </div>
                 </div>
             </div>

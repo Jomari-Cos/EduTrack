@@ -45,5 +45,37 @@
     </main>
   </div>
 
+  <!-- Footer with School Info -->
+  {% if system_settings %}
+  <footer class="bg-white border-t border-gray-200 mt-6">
+    <div class="max-w-screen-xl mx-auto px-6 py-4">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-600">
+        <div class="flex items-center gap-3">
+          {% if system_settings.school_logo %}
+          <img src="/static/uploads/{{ system_settings.school_logo }}" alt="{{ system_settings.school_name }}" class="h-10 w-10 object-contain">
+          {% endif %}
+          <div>
+            <div class="font-semibold">{{ system_settings.school_name or "EduTrack" }}</div>
+            {% if system_settings.academic_year %}
+            <div class="text-xs text-gray-500">{{ system_settings.academic_year }} - {{ system_settings.current_term }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-4 text-xs">
+          {% if system_settings.school_address %}
+          <span>📍 {{ system_settings.school_address }}</span>
+          {% endif %}
+          {% if system_settings.school_contact %}
+          <span>📞 {{ system_settings.school_contact }}</span>
+          {% endif %}
+          {% if system_settings.school_email %}
+          <span>📧 {{ system_settings.school_email }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </footer>
+  {% endif %}
+
 </body>
 </html>

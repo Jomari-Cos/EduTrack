@@ -15,6 +15,10 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Form elements
   const schoolName = document.getElementById("schoolName");
+  const schoolLogo = document.getElementById("schoolLogo");
+  const schoolLogoFile = document.getElementById("schoolLogoFile");
+  const logoImage = document.getElementById("logoImage");
+  const logoPlaceholder = document.getElementById("logoPlaceholder");
   const schoolAddress = document.getElementById("schoolAddress");
   const schoolContact = document.getElementById("schoolContact");
   const schoolEmail = document.getElementById("schoolEmail");
@@ -86,6 +90,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Handle logo file selection
+  schoolLogoFile?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        showNotification("⚠️ Logo file size must be less than 2MB", "error");
+        schoolLogoFile.value = "";
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        showNotification("⚠️ Please select a valid image file", "error");
+        schoolLogoFile.value = "";
+        return;
+      }
+      
+      // Preview the image
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        logoImage.src = e.target.result;
+        logoImage.classList.remove("hidden");
+        logoPlaceholder.classList.add("hidden");
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
   // Submit form
   systemSettingsForm?.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -127,6 +160,18 @@ document.addEventListener("DOMContentLoaded", () => {
   function populateForm(settings) {
     // School Information
     schoolName.value = settings.school_name || "";
+    schoolLogo.value = settings.school_logo || "";
+    
+    // Display current logo if exists
+    if (settings.school_logo) {
+      logoImage.src = `/static/uploads/${settings.school_logo}`;
+      logoImage.classList.remove("hidden");
+      logoPlaceholder.classList.add("hidden");
+    } else {
+      logoImage.classList.add("hidden");
+      logoPlaceholder.classList.remove("hidden");
+    }
+    
     schoolAddress.value = settings.school_address || "";
     schoolContact.value = settings.school_contact || "";
     schoolEmail.value = settings.school_email || "";
@@ -273,8 +318,30 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      // Handle logo upload if a new file was selected
+      let logoFilename = schoolLogo.value;
+      if (schoolLogoFile.files.length > 0) {
+        const formData = new FormData();
+        formData.append("logo", schoolLogoFile.files[0]);
+        
+        const uploadResponse = await fetch("/admin/api/upload-logo", {
+          method: "POST",
+          body: formData,
+        });
+        
+        const uploadResult = await uploadResponse.json();
+        if (uploadResult.success) {
+          logoFilename = uploadResult.filename;
+          showNotification("✅ Logo uploaded successfully", "success");
+        } else {
+          showNotification("⚠️ Logo upload failed: " + uploadResult.message, "error");
+          // Continue anyway with other settings
+        }
+      }
+
       const settingsData = {
         school_name: schoolName.value,
+        school_logo: logoFilename,
         school_address: schoolAddress.value,
         school_contact: schoolContact.value,
         school_email: schoolEmail.value,
