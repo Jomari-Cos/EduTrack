@@ -37,6 +37,10 @@ class VirtualKeyboard {
                 <div class="keyboard-header">
                     <button class="keyboard-close-btn" id="keyboardCloseBtn">✕</button>
                 </div>
+                <div class="keyboard-preview" id="keyboardPreview">
+                    <div class="preview-text" id="previewText"></div>
+                    <div class="preview-cursor">|</div>
+                </div>
                 <div class="keyboard-keys">
                     <div class="keyboard-row">
                         <button class="keyboard-key" data-key="1">1</button>
@@ -124,6 +128,7 @@ class VirtualKeyboard {
                 
                 this.activeInput = target;
                 this.showKeyboard();
+                this.updatePreview();
                 target.classList.add('keyboard-active-input');
             }
         });
@@ -236,6 +241,9 @@ class VirtualKeyboard {
         // Trigger input event for reactivity
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.focus();
+        
+        // Update preview
+        this.updatePreview();
     }
 
     updateKeyDisplay() {
@@ -267,13 +275,23 @@ class VirtualKeyboard {
         if (!this.keyboardElement) return;
         
         this.keyboardElement.classList.add('show');
-        this.adjustKeyboardPosition();
+        
+        // Add padding to body to prevent content from being hidden
+        setTimeout(() => {
+            const keyboardHeight = this.keyboardElement.offsetHeight;
+            document.body.style.paddingBottom = keyboardHeight + 'px';
+            this.adjustKeyboardPosition();
+        }, 50);
     }
 
     hideKeyboard() {
         if (!this.keyboardElement) return;
         
         this.keyboardElement.classList.remove('show');
+        
+        // Remove padding from body
+        document.body.style.paddingBottom = '0';
+        
         if (this.activeInput) {
             this.activeInput.classList.remove('keyboard-active-input');
             this.activeInput = null;
@@ -285,10 +303,39 @@ class VirtualKeyboard {
         if (this.activeInput) {
             const inputRect = this.activeInput.getBoundingClientRect();
             const keyboardHeight = this.keyboardElement.offsetHeight;
+            const safeMargin = 20; // Extra space above the keyboard
             
-            // If input is hidden behind keyboard, scroll it into view
-            if (inputRect.bottom > window.innerHeight - keyboardHeight) {
-                this.activeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // If input is hidden behind keyboard or too close to it, scroll it into view
+            if (inputRect.bottom > window.innerHeight - keyboardHeight - safeMargin) {
+                // Scroll with offset to keep input visible above keyboard
+                const scrollOffset = inputRect.top - (window.innerHeight - keyboardHeight) + inputRect.height + safeMargin;
+                if (scrollOffset > 0) {
+                    window.scrollBy({ 
+                        top: scrollOffset, 
+                        behavior: 'smooth' 
+                    });
+                }
+            }
+        }
+    }
+
+    updatePreview() {
+        const previewText = document.getElementById('previewText');
+        if (previewText && this.activeInput) {
+            const value = this.activeInput.value;
+            const placeholder = this.activeInput.placeholder || 'Type here...';
+            
+            if (value) {
+                // Show asterisks for password inputs
+                if (this.activeInput.type === 'password') {
+                    previewText.textContent = '*'.repeat(value.length);
+                } else {
+                    previewText.textContent = value;
+                }
+                previewText.classList.remove('placeholder');
+            } else {
+                previewText.textContent = placeholder;
+                previewText.classList.add('placeholder');
             }
         }
     }
@@ -303,6 +350,13 @@ class VirtualKeyboard {
                 
                 // Optional: uncomment to hide keyboard on outside click
                 // this.hideKeyboard();
+            }
+        });
+        
+        // Also listen for input events from physical keyboard
+        document.addEventListener('input', (e) => {
+            if (e.target === this.activeInput) {
+                this.updatePreview();
             }
         });
     }
