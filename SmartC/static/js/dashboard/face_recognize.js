@@ -48,6 +48,15 @@ let speechRecognition = null;
 let isListening = false;
 let lastCommandTime = 0;
 let commandCooldown = 1000;
+let voiceRecognitionBlocked = false; // Flag to prevent auto-restart after blocking errors
+
+// MediaPipe Hands variables
+let hands = null;
+let handsInitialized = false;
+let detectedHands = [];
+let handBoundingBoxes = [];
+let lastHandDetectionTime = 0;
+let handDetectionThrottle = 100; // 10 FPS (100ms between detections)
 
 // Initialize DOM elements and event listeners
 function initializeDOM() {
@@ -155,12 +164,16 @@ function initializeApp() {
     debugModeCheck.addEventListener('change', toggleDebugMode);
     sectionFilter.addEventListener('change', handleSectionChange);
     video.addEventListener('resize', resizeCanvasToVideo);
+    video.addEventListener('loadeddata', resizeCanvasToVideo); // Ensure canvas resizes when video is ready
     
     // ADDED: Attendance event listener
     attendanceToggleCheck.addEventListener('change', toggleAttendance);
     
     // Initialize attendance
     checkAndResetAttendance();
+    
+    // Initialize MediaPipe Hands for hand detection
+    initializeMediaPipeHands();
 }
 
 // ===================================================================
@@ -222,6 +235,235 @@ function checkAndResetAttendance() {
         console.log('New day - attendance tracking reset');
         updateAttendanceCounter();
     }
+}
+
+// ===================================================================
+// MEDIAPIPE HANDS INITIALIZATION
+// ===================================================================
+
+// Initialize MediaPipe Hands for hand detection
+function initializeMediaPipeHands() {
+    if (typeof Hands === 'undefined') {
+        console.warn('MediaPipe Hands library not loaded');
+        return;
+    }
+    
+    console.log('[MediaPipe] Initializing MediaPipe Hands...');
+    
+    hands = new Hands({
+        locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }
+    });
+    
+    hands.setOptions({
+        maxNumHands: 30, // Detect up to 30 hands (supports 20+ students)
+        modelComplexity: 1,
+        minDetectionConfidence: 0.3, // Lower threshold for better far-distance detection
+        minTrackingConfidence: 0.3 // Lower threshold for better far-distance tracking
+    });
+    
+    hands.onResults(onHandDetectionResults);
+    handsInitialized = true;
+    
+    console.log('[MediaPipe] MediaPipe Hands initialized successfully');
+}
+
+// Handle hand detection results from MediaPipe
+function onHandDetectionResults(results) {
+    if (!enableHandDetection) return;
+    
+    const currentTime = Date.now();
+    if (currentTime - lastHandDetectionTime < handDetectionThrottle) {
+        return; // Throttle to 10 FPS
+    }
+    lastHandDetectionTime = currentTime;
+    
+    detectedHands = results.multiHandLandmarks || [];
+    handBoundingBoxes = [];
+    
+    // Ensure overlay has valid dimensions before calculating coordinates
+    if (!overlay.width || !overlay.height) {
+        console.warn('[MediaPipe] Overlay not ready, skipping hand detection frame');
+        return;
+    }
+    
+    // Calculate bounding boxes for each detected hand with adaptive padding
+    // OPTIMIZED: Only process wrist + fingertips (6 landmarks) instead of all 21 landmarks
+    detectedHands.forEach((landmarks, handIndex) => {
+        // Use overlay dimensions to match the drawing canvas
+        const videoWidth = overlay.width;
+        const videoHeight = overlay.height;
+        
+        // Key landmark indices: Wrist(0), Thumb(4), Index(8), Middle(12), Ring(16), Pinky(20)
+        const keyIndices = [0, 4, 8, 12, 16, 20];
+        
+        // Get min/max coordinates from key landmarks only (71% reduction in processing)
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+        
+        keyIndices.forEach(index => {
+            if (landmarks[index]) {
+                const landmark = landmarks[index];
+                const x = landmark.x * videoWidth;
+                const y = landmark.y * videoHeight;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+            }
+        });
+        
+        // Calculate base dimensions
+        const baseWidth = maxX - minX;
+        const baseHeight = maxY - minY;
+        const handSize = Math.max(baseWidth, baseHeight);
+        
+        // Adaptive padding based on hand size
+        let paddingPercent;
+        if (handSize < 100) {
+            paddingPercent = 0.30; // 30% padding for small hands
+        } else if (handSize < 150) {
+            paddingPercent = 0.25; // 25% padding for medium hands
+        } else {
+            paddingPercent = 0.20; // 20% padding for large hands
+        }
+        
+        const paddingX = baseWidth * paddingPercent;
+        const paddingY = baseHeight * paddingPercent;
+        
+        // Calculate final bounding box with padding
+        const finalX = Math.max(0, Math.round(minX - paddingX));
+        const finalY = Math.max(0, Math.round(minY - paddingY));
+        const finalWidth = Math.min(videoWidth - finalX, Math.round(baseWidth + paddingX * 2));
+        const finalHeight = Math.min(videoHeight - finalY, Math.round(baseHeight + paddingY * 2));
+        
+        handBoundingBoxes.push({
+            x: finalX,
+            y: finalY,
+            width: finalWidth,
+            height: finalHeight,
+            landmarks: landmarks,
+            keyIndices: [0, 4, 8, 12, 16, 20] // Store for drawing optimization
+        });
+        
+        if (handIndex === 0) {
+            // Log dimensions for first hand only to avoid console spam
+            console.log(`[MediaPipe] Hand ${handIndex + 1}: overlay=(${videoWidth}x${videoHeight}), bbox=(${finalX}, ${finalY}, ${finalWidth}, ${finalHeight}), padding=${Math.round(paddingPercent*100)}%`);
+        }
+    });
+    
+    // Update stats
+    trackingStats.handCount = detectedHands.length;
+    if (handCountEl) {
+        handCountEl.textContent = detectedHands.length;
+    }
+    if (detectedHandsEl) {
+        detectedHandsEl.textContent = detectedHands.length;
+    }
+    
+    // Note: Hand drawing happens in drawRecognitionResults() after canvas clear
+    // Don't draw here to avoid accumulating boxes on top of each other
+}
+
+// Draw hands on overlay canvas
+function drawHandsOnOverlay(ctx) {
+    if (!detectedHands || detectedHands.length === 0) return;
+    
+    // Get the context if not provided
+    if (!ctx) {
+        ctx = overlay.getContext('2d');
+    }
+    
+    const videoWidth = overlay.width;
+    const videoHeight = overlay.height;
+    
+    // Draw each hand
+    // Note: When called from drawRecognitionResults, context is already mirrored
+    // So we need to mirror X coordinates to compensate for the transform
+    detectedHands.forEach((landmarks, handIndex) => {
+        const bbox = handBoundingBoxes[handIndex];
+        
+        if (!bbox) return;
+        
+        // Mirror bounding box X coordinates for the transformed context
+        const mirroredX = videoWidth - bbox.x - bbox.width;
+        
+        // Draw bounding box
+        ctx.strokeStyle = '#9C27B0'; // Purple color for hands
+        ctx.lineWidth = 3;
+        ctx.strokeRect(mirroredX, bbox.y, bbox.width, bbox.height);
+        
+        // Draw label
+        ctx.fillStyle = 'rgba(156, 39, 176, 0.8)';
+        ctx.fillRect(mirroredX, bbox.y - 30, 120, 30);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(`Hand ${handIndex + 1} ⚡`, mirroredX + 5, bbox.y - 10);
+        
+        // OPTIMIZED: Draw only wrist + fingertips (6 landmarks instead of 21)
+        const keyIndices = [0, 4, 8, 12, 16, 20];
+        const keyNames = ['Wrist', 'Thumb', 'Index', 'Middle', 'Ring', 'Pinky'];
+        
+        keyIndices.forEach((index, keyIndex) => {
+            if (landmarks[index]) {
+                const landmark = landmarks[index];
+                const x = landmark.x * videoWidth;
+                const y = landmark.y * videoHeight;
+                
+                // Mirror X coordinate for the transformed context
+                const mirroredLandmarkX = videoWidth - x;
+                
+                // Draw key points with larger size
+                const isWrist = index === 0;
+                ctx.fillStyle = isWrist ? '#00E5FF' : '#FFD700'; // Cyan for wrist, gold for fingertips
+                ctx.beginPath();
+                ctx.arc(mirroredLandmarkX, y, isWrist ? 5 : 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw label in debug mode
+                if (debugMode) {
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 9px Arial';
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(keyNames[keyIndex], mirroredLandmarkX + 8, y + 4);
+                    ctx.fillText(keyNames[keyIndex], mirroredLandmarkX + 8, y + 4);
+                }
+            }
+        });
+        
+        // Draw simplified connections in debug mode
+        if (debugMode) {
+            // Connect wrist to fingertips for simplified visualization
+            const keyIndices = [0, 4, 8, 12, 16, 20];
+            const wrist = landmarks[0];
+            
+            if (wrist) {
+                ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)'; // Cyan for wrist connections
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                // Draw lines from wrist to each fingertip
+                for (let i = 1; i < keyIndices.length; i++) {
+                    const fingertip = landmarks[keyIndices[i]];
+                    
+                    if (fingertip) {
+                        // Mirror X coordinates for lines
+                        const wristX = videoWidth - (wrist.x * videoWidth);
+                        const tipX = videoWidth - (fingertip.x * videoWidth);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(wristX, wrist.y * videoHeight);
+                        ctx.lineTo(tipX, fingertip.y * videoHeight);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            ctx.setLineDash([]); // Reset dash
+        }
+    });
 }
 
 // ===================================================================
@@ -778,6 +1020,30 @@ function resizeCanvasToVideo() {
     if (video.videoWidth && video.videoHeight) {
         overlay.width = video.videoWidth;
         overlay.height = video.videoHeight;
+        console.log(`[Canvas] Resized overlay to match video: ${video.videoWidth}x${video.videoHeight}`);
+    } else {
+        console.warn('[Canvas] Cannot resize overlay - video dimensions not ready');
+    }
+}
+
+// Process video frames for hand detection
+async function processHandDetection() {
+    if (!cameraActive || !handsInitialized || !enableHandDetection) {
+        if (cameraActive && enableHandDetection) {
+            // Continue checking even if not initialized yet
+            requestAnimationFrame(processHandDetection);
+        }
+        return;
+    }
+    
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        // Send frame to MediaPipe Hands
+        await hands.send({ image: video });
+    }
+    
+    // Continue processing
+    if (cameraActive) {
+        requestAnimationFrame(processHandDetection);
     }
 }
 
@@ -801,6 +1067,11 @@ async function toggleCamera() {
             // Start recognition if auto is enabled
             if (autoRecognition) {
                 startRecognition();
+            }
+            
+            // Start hand detection processing
+            if (enableHandDetection && handsInitialized) {
+                processHandDetection();
             }
         } else {
             noCameraDiv.style.display = 'flex';
@@ -836,6 +1107,11 @@ async function retryCamera() {
         
         if (autoRecognition) {
             startRecognition();
+        }
+        
+        // Start hand detection processing
+        if (enableHandDetection && handsInitialized) {
+            processHandDetection();
         }
     }
 }
@@ -875,6 +1151,17 @@ function toggleHandDetection() {
         // Close any active modal
         if (currentModalTrackId) {
             modal.hide();
+        }
+        // Clear hand detections
+        detectedHands = [];
+        handBoundingBoxes = [];
+        trackingStats.handCount = 0;
+        if (handCountEl) handCountEl.textContent = '0';
+        if (detectedHandsEl) detectedHandsEl.textContent = '0';
+    } else {
+        // Start hand detection if camera is active
+        if (cameraActive && handsInitialized) {
+            processHandDetection();
         }
     }
 }
@@ -980,16 +1267,9 @@ async function recognizeFrame() {
             updateRecognitionResults(result.faces);
             drawRecognitionResults(result.faces, canvas);
             
-            // Draw hand landmarks if available
-            if (result.hand_landmarks && enableHandDetection) {
-                drawHandLandmarks(result.hand_landmarks);
-                trackingStats.handCount = result.hand_landmarks.length;
-                handCountEl.textContent = result.hand_landmarks.length;
-                detectedHandsEl.textContent = result.hand_landmarks.length;
-            } else {
-                handCountEl.textContent = '0';
-                detectedHandsEl.textContent = '0';
-            }
+            // NOTE: Hand detection is now handled by MediaPipe Hands (browser-based)
+            // Old backend hand detection code removed
+            // MediaPipe hands are drawn automatically in drawRecognitionResults()
             
             // Update optimization statistics
             if (result.optimization_stats) {
@@ -1241,112 +1521,9 @@ function resetRecognitionResults() {
 // DRAWING FUNCTIONS
 // ===================================================================
 
-// Draw hand landmarks on canvas
-function drawHandLandmarks(handLandmarks) {
-    if (!handLandmarks || !handLandmarks.length || !enableHandDetection || !showHandLandmarks) return;
-    
-    const ctx = overlay.getContext('2d');
-    
-    // Save current transform
-    ctx.save();
-    
-    // Mirror the canvas to match video
-    ctx.scale(-1, 1);
-    ctx.translate(-overlay.width, 0);
-    
-    handLandmarks.forEach((landmarks, handIndex) => {
-        if (!landmarks || landmarks.length < 21) return;
-        
-        // Draw connections (palm)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 3;
-        
-        // Palm connections
-        const palmConnections = [
-            [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
-            [0, 5], [5, 6], [6, 7], [7, 8], // Index finger
-            [0, 9], [9, 10], [10, 11], [11, 12], // Middle finger
-            [0, 13], [13, 14], [14, 15], [15, 16], // Ring finger
-            [0, 17], [17, 18], [18, 19], [19, 20], // Pinky finger
-            [5, 9], [9, 13], [13, 17] // Palm base
-        ];
-        
-        // Draw connections
-        ctx.beginPath();
-        palmConnections.forEach(([start, end]) => {
-            if (start < landmarks.length && end < landmarks.length) {
-                const startPoint = landmarks[start];
-                const endPoint = landmarks[end];
-                
-                ctx.moveTo(startPoint[0], startPoint[1]);
-                ctx.lineTo(endPoint[0], endPoint[1]);
-            }
-        });
-        ctx.stroke();
-        
-        // Draw landmarks
-        ctx.fillStyle = '#9C27B0'; // Purple color for hand landmarks
-        
-        landmarks.forEach((point, index) => {
-            if (point && point.length >= 2) {
-                const [x, y] = point;
-                
-                // Different sizes for different landmark types
-                let radius = 3;
-                if (index === 0) radius = 6; // Wrist - larger
-                if (index === 4 || index === 8 || index === 12 || index === 16 || index === 20) 
-                    radius = 5; // Fingertips - medium
-                
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw landmark numbers in debug mode
-                if (debugMode) {
-                    ctx.fillStyle = 'white';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(index.toString(), x + 5, y - 5);
-                    ctx.fillStyle = '#9C27B0'; // Reset color
-                }
-            }
-        });
-        
-        // Draw hand bounding box (for debugging)
-        if (debugMode && landmarks.length > 0) {
-            const xs = landmarks.map(p => p[0]);
-            const ys = landmarks.map(p => p[1]);
-            const minX = Math.min(...xs);
-            const maxX = Math.max(...xs);
-            const minY = Math.min(...ys);
-            const maxY = Math.max(...ys);
-            
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(minX - 10, minY - 10, maxX - minX + 20, maxY - minY + 20);
-            ctx.setLineDash([]);
-            
-            // Draw hand center
-            const centerX = (minX + maxX) / 2;
-            const centerY = (minY + maxY) / 2;
-            
-            ctx.fillStyle = 'yellow';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw hand label
-            ctx.fillStyle = 'rgba(156, 39, 176, 0.8)';
-            ctx.fillRect(minX, minY - 25, 100, 25);
-            ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
-            ctx.fillText(`Hand ${handIndex + 1}`, minX + 5, minY - 10);
-        }
-    });
-    
-    // Restore transform
-    ctx.restore();
-}
+// NOTE: Old drawHandLandmarks() function removed
+// Hand detection is now handled by MediaPipe Hands (browser-based)
+// See drawHandsOnOverlay() in MEDIAPIPE HANDS INITIALIZATION section
 
 // Draw results on canvas
 function drawRecognitionResults(faces, originalCanvas = null) {
@@ -1558,27 +1735,41 @@ function drawRecognitionResults(faces, originalCanvas = null) {
             const faceWidth = x2 - x1;
             const faceHeight = y2 - y1;
             
+            // Calculate distance factor (smaller faces = farther away = larger zone)
+            // Assume typical face width is ~150px at normal distance
+            const normalFaceWidth = 150;
+            const distanceFactor = Math.max(1.0, Math.min(2.5, normalFaceWidth / faceWidth));
+            
             // Draw hand raise detection zone (above face)
             ctx.strokeStyle = 'rgba(255, 193, 7, 0.3)';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
             
-            // Detection area above face
-            const detectionTop = Math.max(0, y1 - faceHeight * 2.5);
-            const detectionBottom = y1 + faceHeight * 0.3;
-            const detectionLeft = Math.max(0, x1 - faceWidth * 1.0);
-            const detectionRight = Math.min(overlay.width, x2 + faceWidth * 1.0);
+            // Detection area above face - larger and distance-adaptive
+            const heightMultiplier = 3.5 * distanceFactor; // Increased from 2.5, scales with distance
+            const widthMultiplier = 1.5 * distanceFactor;  // Increased from 1.0, scales with distance
+            
+            const detectionTop = Math.max(0, y1 - faceHeight * heightMultiplier);
+            const detectionBottom = y1 + faceHeight * 0.5; // Increased from 0.3
+            const detectionLeft = Math.max(0, x1 - faceWidth * widthMultiplier);
+            const detectionRight = Math.min(overlay.width, x2 + faceWidth * widthMultiplier);
             
             ctx.strokeRect(detectionLeft, detectionTop, detectionRight - detectionLeft, detectionBottom - detectionTop);
             
-            // Draw zone label
+            // Draw zone label with distance info
             ctx.fillStyle = 'rgba(255, 193, 7, 0.7)';
-            ctx.font = '10px Arial';
-            ctx.fillText('Hand Raise Zone', detectionLeft, detectionTop - 5);
+            ctx.font = 'bold 11px Arial';
+            const zoneLabel = `Hand Raise Zone (${distanceFactor.toFixed(1)}x)`;
+            ctx.fillText(zoneLabel, detectionLeft + 5, detectionTop + 15);
             
             ctx.setLineDash([]); // Reset dash
         }
     });
+    
+    // Draw hands on overlay if enabled and available
+    if (enableHandDetection && showHandLandmarks && detectedHands.length > 0) {
+        drawHandsOnOverlay(ctx);
+    }
     
     // Reset transform for next frame
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2062,9 +2253,11 @@ function copySessionId() {
 function initializeVoiceRecognition() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         console.warn('Speech recognition not supported in this browser');
+        alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
         return false;
     }
     
+    console.log('[Voice] Initializing speech recognition...');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     speechRecognition = new SpeechRecognition();
     
@@ -2074,10 +2267,13 @@ function initializeVoiceRecognition() {
     speechRecognition.lang = 'en-US';
     speechRecognition.maxAlternatives = 1;
     
+    console.log('[Voice] Speech recognition configured successfully');
+    
     // Speech recognition event handlers
     speechRecognition.onstart = function() {
-        console.log('Voice recognition started');
+        console.log('[Voice] Voice recognition started successfully');
         isListening = true;
+        voiceRecognitionBlocked = false; // Clear blocked flag on successful start
         updateVoiceStatus('active');
     };
     
@@ -2086,13 +2282,20 @@ function initializeVoiceRecognition() {
         isListening = false;
         updateVoiceStatus('inactive');
         
-        // Restart recognition if modal is still open
-        if (modal && modal._isShown) {
+        // Restart recognition if modal is still open and no blocking error occurred
+        if (modal && modal._isShown && !voiceRecognitionBlocked) {
             setTimeout(() => {
-                if (speechRecognition && !isListening) {
-                    speechRecognition.start();
+                if (speechRecognition && !isListening && modal && modal._isShown && !voiceRecognitionBlocked) {
+                    try {
+                        speechRecognition.start();
+                        console.log('Voice recognition auto-restarted');
+                    } catch (error) {
+                        console.error('Error auto-restarting voice recognition:', error);
+                    }
                 }
             }, 500);
+        } else if (voiceRecognitionBlocked) {
+            console.log('[Voice] Auto-restart blocked due to previous error');
         }
     };
     
@@ -2114,10 +2317,26 @@ function initializeVoiceRecognition() {
         isListening = false;
         updateVoiceStatus('error');
         
-        if (event.error !== 'aborted' && event.error !== 'not-allowed') {
+        // Check if this is a blocking error that should prevent auto-restart
+        const blockingErrors = ['aborted', 'not-allowed', 'no-speech', 'service-not-allowed'];
+        if (blockingErrors.includes(event.error)) {
+            voiceRecognitionBlocked = true; // Set flag to prevent onend from restarting
+            console.log('[Voice] Blocking error detected - auto-restart disabled:', event.error);
+            
+            // Show user-friendly message for permission denied
+            if (event.error === 'not-allowed') {
+                showVoiceFeedback('Microphone permission denied. Please allow microphone access in browser settings.', 'error');
+            }
+        } else {
+            // Only auto-restart for transient errors
             setTimeout(() => {
-                if (modal && modal._isShown && speechRecognition) {
-                    speechRecognition.start();
+                if (modal && modal._isShown && speechRecognition && !isListening && !voiceRecognitionBlocked) {
+                    try {
+                        speechRecognition.start();
+                        console.log('Voice recognition restarted after transient error');
+                    } catch (error) {
+                        console.error('Error restarting after error:', error);
+                    }
                 }
             }, 1000);
         }
@@ -2129,6 +2348,7 @@ function initializeVoiceRecognition() {
 // Process voice commands
 function processVoiceCommand(command) {
     if (!modal || !modal._isShown) {
+        console.log('Modal not active - ignoring voice command');
         return;
     }
     
@@ -2239,25 +2459,33 @@ function processVoiceCommand(command) {
 
 // Start voice recognition when modal opens
 function startVoiceRecognition() {
+    console.log('[Voice] startVoiceRecognition called');
+    
     if (!speechRecognition) {
+        console.log('[Voice] Speech recognition not initialized, initializing now...');
         const initialized = initializeVoiceRecognition();
         if (!initialized) {
-            console.warn('Voice recognition not available');
+            console.warn('[Voice] Voice recognition not available');
             return;
         }
     }
     
     if (!isListening) {
         try {
+            console.log('[Voice] Starting speech recognition...');
             speechRecognition.start();
             showVoiceFeedback('Voice commands active', 'success');
         } catch (error) {
-            console.error('Error starting speech recognition:', error);
+            console.error('[Voice] Error starting speech recognition:', error);
             
             if (error.name === 'NotAllowedError') {
                 showVoiceFeedback('Microphone access denied. Please allow microphone permissions.', 'error');
+            } else {
+                showVoiceFeedback('Failed to start voice recognition: ' + error.message, 'error');
             }
         }
+    } else {
+        console.log('[Voice] Voice recognition already listening');
     }
 }
 
@@ -2445,6 +2673,13 @@ function addVoiceCommandHelp() {
     const modalFooter = document.querySelector('#handRaiseModal .modal-footer');
     if (!modalFooter) return;
     
+    // Check if the button already exists to prevent duplicates
+    const existingButton = modalFooter.querySelector('.btn-outline-info.me-auto');
+    if (existingButton) {
+        console.log('[Voice] Voice command help button already exists, skipping');
+        return;
+    }
+    
     const helpButton = document.createElement('button');
     helpButton.type = 'button';
     helpButton.className = 'btn btn-outline-info btn-sm me-auto';
@@ -2454,93 +2689,432 @@ function addVoiceCommandHelp() {
     modalFooter.prepend(helpButton);
 }
 
+
 // Show voice command help modal
 function showVoiceCommandHelpModal() {
     const helpModalHTML = `
-        <div class="modal fade" id="voiceHelpModal" tabindex="-1">
-            <div class="modal-dialog modal-xl" style="max-width: 1600px !important; width: 98% !important; margin: 1.75rem auto !important;">
-                <div class="modal-content" style="border-radius: 15px; width: 100% !important; max-width: none !important;">
-                    <div class="modal-header bg-primary text-white" style="padding: 1.5rem;">
-                        <h5 class="modal-title" style="font-size: 1.5rem;"><i class="fas fa-microphone me-2"></i>Voice Commands Guide</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <style>
+            #voiceHelpModal .modal-dialog {
+                max-width: 1200px !important;
+                width: 90% !important;
+                margin: 1.75rem auto !important;
+            }
+            
+            @media (min-width: 1400px) {
+                #voiceHelpModal .modal-dialog {
+                    max-width: 1400px !important;
+                }
+            }
+            
+            @media (min-width: 1200px) and (max-width: 1399px) {
+                #voiceHelpModal .modal-dialog {
+                    max-width: 1200px !important;
+                }
+            }
+            
+            @media (min-width: 992px) and (max-width: 1199px) {
+                #voiceHelpModal .modal-dialog {
+                    max-width: 1000px !important;
+                }
+            }
+            
+            @media (max-width: 991px) {
+                #voiceHelpModal .modal-dialog {
+                    max-width: 95% !important;
+                    margin: 1rem auto !important;
+                }
+            }
+            
+            #voiceHelpModal .modal-content {
+                border: none;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                width: 100% !important;
+            }
+            
+            #voiceHelpModal .modal-body {
+                padding: 1.75rem;
+                overflow-x: hidden;
+                overflow-y: auto;
+                max-height: 75vh;
+                background-color: #f8f9fa;
+            }
+            
+            #voiceHelpModal .modal-header {
+                padding: 1rem 1.75rem;
+                border-bottom: 2px solid rgba(255,255,255,0.1);
+            }
+            
+            #voiceHelpModal .modal-header .modal-title {
+                font-size: 1.35rem;
+                font-weight: 600;
+            }
+            
+            #voiceHelpModal .modal-footer {
+                padding: 1rem 1.75rem;
+                background-color: #f8f9fa;
+                border-top: 1px solid #dee2e6;
+            }
+            
+            #voiceHelpModal .card {
+                margin-bottom: 1.25rem;
+                border: none;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-radius: 10px;
+                overflow: hidden;
+                height: 100%;
+                transition: transform 0.2s ease;
+            }
+            
+            #voiceHelpModal .card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            }
+            
+            #voiceHelpModal .card-header {
+                padding: 1rem 1.25rem;
+                font-size: 1.15rem;
+                font-weight: 600;
+                border-bottom: none;
+                letter-spacing: 0.3px;
+            }
+            
+            #voiceHelpModal .card-header.bg-success {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+            }
+            
+            #voiceHelpModal .card-header.bg-warning {
+                background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+            }
+            
+            #voiceHelpModal .card-header.bg-primary {
+                background: linear-gradient(135deg, #007bff 0%, #6610f2 100%) !important;
+            }
+            
+            #voiceHelpModal .list-group-item {
+                padding: 0.9rem 1.25rem;
+                font-size: 1rem;
+                border-left: none;
+                border-right: none;
+                border-color: #f0f0f0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background-color: white;
+            }
+            
+            #voiceHelpModal .list-group-item:first-child {
+                border-top: none;
+            }
+            
+            #voiceHelpModal .list-group-item:last-child {
+                border-bottom: none;
+            }
+            
+            #voiceHelpModal code {
+                font-size: 1rem;
+                background: #e9ecef;
+                padding: 0.35rem 0.75rem;
+                border-radius: 20px;
+                color: #d63384;
+                font-weight: 500;
+                border: 1px solid #dee2e6;
+                white-space: nowrap;
+            }
+            
+            #voiceHelpModal .text-muted {
+                font-size: 0.95rem;
+                color: #6c757d !important;
+                font-weight: 400;
+            }
+            
+            #voiceHelpModal .alert {
+                padding: 1.1rem 1.25rem;
+                font-size: 1.05rem;
+                border: none;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #cff4fc 0%, #d1e7ff 100%);
+                border-left: 4px solid #0dcaf0;
+                margin-bottom: 1.5rem;
+            }
+            
+            #voiceHelpModal .alert i {
+                font-size: 1.2rem;
+            }
+            
+            #voiceHelpModal .alert strong {
+                color: #055160;
+            }
+            
+            #voiceHelpModal .bg-light {
+                background: white !important;
+                border: 1px solid #e9ecef;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                margin-top: 1.5rem;
+            }
+            
+            #voiceHelpModal h6 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #495057;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 2px solid #e9ecef;
+            }
+            
+            #voiceHelpModal ul {
+                padding-left: 0;
+                list-style: none;
+                margin-bottom: 0;
+            }
+            
+            #voiceHelpModal ul li {
+                font-size: 1rem;
+                padding: 0.5rem 1rem;
+                margin-bottom: 0.25rem;
+                background: #f8f9fa;
+                border-radius: 8px;
+                display: inline-block;
+                width: auto;
+                margin-right: 0.5rem;
+            }
+            
+            #voiceHelpModal .row {
+                margin: 0 -0.75rem;
+            }
+            
+            #voiceHelpModal .col-md-6,
+            #voiceHelpModal .col-12 {
+                padding: 0 0.75rem;
+            }
+            
+            #voiceHelpModal .btn {
+                padding: 0.6rem 1.5rem;
+                font-size: 1rem;
+                font-weight: 500;
+                border-radius: 8px;
+                transition: all 0.2s ease;
+            }
+            
+            #voiceHelpModal .btn-secondary {
+                background-color: #6c757d;
+                border: none;
+            }
+            
+            #voiceHelpModal .btn-secondary:hover {
+                background-color: #5a6268;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+            }
+            
+            #voiceHelpModal .btn-success {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                border: none;
+            }
+            
+            #voiceHelpModal .btn-success:hover {
+                background: linear-gradient(135deg, #218838 0%, #1ba87e 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+            }
+            
+            #voiceHelpModal .btn i {
+                margin-right: 0.5rem;
+            }
+            
+            #voiceHelpModal .float-end {
+                color: #6c757d;
+                background: #f8f9fa;
+                padding: 0.2rem 0.8rem;
+                border-radius: 20px;
+                font-size: 0.9rem;
+            }
+            
+            /* Grid spacing */
+            .g-3 {
+                --bs-gutter-y: 1.25rem;
+            }
+        </style>
+        
+        <div class="modal fade" id="voiceHelpModal" tabindex="-1" aria-labelledby="voiceHelpModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="voiceHelpModalLabel">
+                            <i class="fas fa-microphone me-2"></i>Voice Command Guide
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body" style="padding: 2.5rem; width: 100%;">
-                        <div class="alert alert-info" style="font-size: 1.05rem; padding: 1rem;">
+                    
+                    <div class="modal-body">
+                        <div class="alert alert-info mb-4">
                             <i class="fas fa-info-circle me-2"></i>
-                            Voice commands are automatically active when this modal is open. Speak clearly and naturally.
+                            <strong>Voice commands auto-activate when modal opens.</strong> 
+                            <span class="d-block d-sm-inline mt-1 mt-sm-0">Speak clearly for best results.</span>
                         </div>
                         
-                        <div class="row" style="margin-bottom: 1.5rem;">
+                        <div class="row g-4">
+                            <!-- Set Points Column -->
                             <div class="col-md-6">
-                                <div class="card mb-3" style="border-radius: 10px;">
-                                    <div class="card-header bg-success text-white" style="padding: 1rem; font-size: 1.1rem;">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
                                         <i class="fas fa-calculator me-2"></i>Set Points
                                     </div>
-                                    <div class="card-body" style="padding: 1.25rem;">
+                                    <div class="card-body p-0">
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"five points"</code> → Sets to 5</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"ten"</code> → Sets to 10</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"twenty five"</code> → Sets to 25</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"maximum"</code> → Sets to 100</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"half"</code> → Sets to 50</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"zero"</code> → Sets to 0</li>
+                                            <li class="list-group-item">
+                                                <code>"five points"</code>
+                                                <span class="text-muted">→ Sets to 5</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"ten"</code>
+                                                <span class="text-muted">→ Sets to 10</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"twenty five"</code>
+                                                <span class="text-muted">→ Sets to 25</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"maximum"</code>
+                                                <span class="text-muted">→ Sets to 100</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"half"</code>
+                                                <span class="text-muted">→ Sets to 50</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"zero"</code>
+                                                <span class="text-muted">→ Sets to 0</span>
+                                            </li>
                                         </ul>
                                     </div>
                                 </div>
                             </div>
                             
+                            <!-- Adjust Points Column -->
                             <div class="col-md-6">
-                                <div class="card mb-3" style="border-radius: 10px;">
-                                    <div class="card-header bg-warning text-dark" style="padding: 1rem; font-size: 1.1rem;">
+                                <div class="card h-100">
+                                    <div class="card-header bg-warning text-dark">
                                         <i class="fas fa-exchange-alt me-2"></i>Adjust Points
                                     </div>
-                                    <div class="card-body" style="padding: 1.25rem;">
+                                    <div class="card-body p-0">
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"increase by five"</code> → Adds 5</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"decrease by ten"</code> → Subtracts 10</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"add three points"</code> → Adds 3</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"minus two"</code> → Subtracts 2</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"clear points"</code> → Clears input</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"reset"</code> → Clears input</li>
+                                            <li class="list-group-item">
+                                                <code>"increase by five"</code>
+                                                <span class="text-muted">→ Adds 5</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"decrease by ten"</code>
+                                                <span class="text-muted">→ Subtracts 10</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"add three points"</code>
+                                                <span class="text-muted">→ Adds 3</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"minus two"</code>
+                                                <span class="text-muted">→ Subtracts 2</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"clear points"</code>
+                                                <span class="text-muted">→ Clears input</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"reset"</code>
+                                                <span class="text-muted">→ Clears input</span>
+                                            </li>
                                         </ul>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="row" style="margin-bottom: 1.5rem;">
-                            <div class="col-md-12">
-                                <div class="card" style="border-radius: 10px;">
-                                    <div class="card-header bg-primary text-white" style="padding: 1rem; font-size: 1.1rem;">
+                            
+                            <!-- Actions Row - Full Width -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
                                         <i class="fas fa-play-circle me-2"></i>Actions
                                     </div>
-                                    <div class="card-body" style="padding: 1.25rem;">
+                                    <div class="card-body p-0">
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"save points"</code> → Saves and closes</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"submit"</code> → Saves and closes</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"cancel"</code> → Closes without saving</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"dismiss"</code> → Closes modal</li>
-                                            <li class="list-group-item" style="padding: 0.85rem 1rem; font-size: 1rem;"><code style="font-size: 0.95rem;">"award points"</code> → Saves points</li>
+                                            <li class="list-group-item">
+                                                <code>"save points"</code>
+                                                <span class="text-muted">→ Saves and closes</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"submit"</code>
+                                                <span class="text-muted">→ Saves and closes</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"cancel"</code>
+                                                <span class="text-muted">→ Closes without saving</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"dismiss"</code>
+                                                <span class="text-muted">→ Closes modal</span>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <code>"award points"</code>
+                                                <span class="text-muted">→ Saves points</span>
+                                            </li>
                                         </ul>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="mt-3 p-3 bg-light rounded" style="padding: 1.5rem !important; font-size: 1.05rem;">
-                            <h6 style="font-size: 1.2rem; margin-bottom: 1rem;"><i class="fas fa-lightbulb me-2"></i>Tips:</h6>
-                            <ul class="mb-0" style="padding-left: 1.5rem; line-height: 1.8;">
-                                <li>Speak clearly in a normal tone</li>
-                                <li>Allow microphone access when prompted</li>
-                                <li>Voice commands work best in quiet environments</li>
-                                <li>Wait for the feedback sound after speaking</li>
-                            </ul>
+                        <!-- Tips Section -->
+                        <div class="mt-4 p-4 bg-light rounded">
+                            <h6 class="mb-3">
+                                <i class="fas fa-lightbulb text-warning me-2"></i>
+                                Tips for Best Results
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2 fs-5">🎤</span>
+                                        <span>Speak clearly in a normal tone</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2 fs-5">✅</span>
+                                        <span>Allow microphone access when prompted</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2 fs-5">🔇</span>
+                                        <span>Works best in quiet environments</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2 fs-5">⏱️</span>
+                                        <span>Wait for feedback sound after speaking</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 fs-5">🎯</span>
+                                        <span>Use exact phrases for best recognition</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 fs-5">🔄</span>
+                                        <span>You can repeat commands if needed</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer" style="padding: 1.5rem;">
-                        <button type="button" class="btn btn-secondary" style="padding: 0.6rem 1.5rem;" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-success" style="padding: 0.6rem 1.5rem;" onclick="testVoiceCommand()">
-                            <i class="fas fa-play me-2"></i>Test Voice Recognition
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Close
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="testVoiceCommand()">
+                            <i class="fas fa-microphone me-2"></i>Test Voice Recognition
                         </button>
                     </div>
                 </div>
@@ -2548,17 +3122,29 @@ function showVoiceCommandHelpModal() {
         </div>
     `;
     
+    // Remove existing modal if present
     const existingModal = document.getElementById('voiceHelpModal');
     if (existingModal) {
         existingModal.remove();
     }
     
+    // Append modal to body
     document.body.insertAdjacentHTML('beforeend', helpModalHTML);
     
-    const voiceHelpModal = new bootstrap.Modal(document.getElementById('voiceHelpModal'));
-    voiceHelpModal.show();
+    // Initialize and show modal
+    const modalElement = document.getElementById('voiceHelpModal');
+    const modal = new bootstrap.Modal(modalElement, {
+        backdrop: 'static',
+        keyboard: true
+    });
+    
+    modal.show();
+    
+    // Clean up modal when hidden
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        this.remove();
+    });
 }
-
 // Test voice recognition
 function testVoiceCommand() {
     if (!speechRecognition) {
@@ -2586,6 +3172,29 @@ function testVoiceCommand() {
 function setupModalVoiceRecognition() {
     const modalElement = document.getElementById('handRaiseModal');
     
+    if (!modalElement) {
+        console.error('handRaiseModal element not found - voice recognition disabled');
+        console.log('Retrying voice recognition setup in 1 second...');
+        // Retry after a delay in case DOM isn't fully loaded
+        setTimeout(() => {
+            const retryElement = document.getElementById('handRaiseModal');
+            if (retryElement) {
+                console.log('Retry successful - setting up voice recognition');
+                setupModalVoiceRecognitionListeners(retryElement);
+            } else {
+                console.error('Modal element still not found after retry');
+            }
+        }, 1000);
+        return;
+    }
+    
+    setupModalVoiceRecognitionListeners(modalElement);
+}
+
+// Setup modal voice recognition event listeners
+function setupModalVoiceRecognitionListeners(modalElement) {
+    console.log('[Voice] Setting up modal event listeners for voice recognition');
+    
     modalElement.addEventListener('show.bs.modal', function() {
         const modalHeader = modalElement.querySelector('.modal-header');
         if (modalHeader && !modalHeader.querySelector('.voice-indicator')) {
@@ -2600,12 +3209,15 @@ function setupModalVoiceRecognition() {
             startVoiceRecognition();
         }, 500);
         
-        addVoiceCommandHelp();
+        // Voice command help button is already in the HTML modal footer, no need to add dynamically
+        // addVoiceCommandHelp();
     });
     
     modalElement.addEventListener('hidden.bs.modal', function() {
         stopVoiceRecognition();
+        voiceRecognitionBlocked = false; // Reset blocked flag when modal closes
         
+        // Remove voice indicator
         const voiceIndicator = document.getElementById('modalVoiceIndicator');
         if (voiceIndicator) {
             voiceIndicator.remove();

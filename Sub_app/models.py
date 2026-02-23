@@ -148,6 +148,43 @@ class Score(db.Model):
 
 
 # ====================================================
+# PASSWORD RESET TOKEN MODEL
+# ====================================================
+import secrets
+from datetime import datetime, timedelta
+
+class PasswordResetToken(db.Model):
+    __tablename__ = "password_reset_tokens"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    teacher_id = db.Column(db.String(50), db.ForeignKey("teachers.teacher_id"), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    
+    teacher = db.relationship("Teacher", backref="reset_tokens")
+    
+    def __init__(self, teacher_id, expiry_minutes=60):
+        self.teacher_id = teacher_id
+        self.token = secrets.token_urlsafe(32)
+        self.created_at = datetime.utcnow()
+        self.expires_at = datetime.utcnow() + timedelta(minutes=expiry_minutes)
+        self.used = False
+    
+    def is_valid(self):
+        """Check if token is still valid (not expired and not used)"""
+        return not self.used and datetime.utcnow() < self.expires_at
+    
+    def mark_as_used(self):
+        """Mark token as used"""
+        self.used = True
+    
+    def __repr__(self):
+        return f"<PasswordResetToken {self.teacher_id} - {'Valid' if self.is_valid() else 'Invalid'}>"
+
+
+# ====================================================
 # ANALYTICS HELPER (UPDATED WITH WEIGHTED SUBJECT SCORES)
 # ====================================================
 def get_student_analytics(grade="", section="", subject=""):

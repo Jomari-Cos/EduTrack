@@ -33,7 +33,7 @@ from PIL import Image
 import face_system
 import threading
 from sqlalchemy import func
-from Sub_app.models import db, Student, Teacher, Attendance, Score, SystemSettings, get_student_analytics, evaluate_student_status
+from Sub_app.models import db, Student, Teacher, Attendance, Score, SystemSettings, get_student_analytics, evaluate_student_status, PasswordResetToken
 from Sub_app.admin import admin_bp
 from Sub_app.update_attendance import attendance_bp
 
@@ -398,6 +398,245 @@ def logout():
     session.clear()
     return redirect(url_for("index"))
 
+
+# ============================================================================
+# PASSWORD RESET ROUTES
+# ============================================================================
+
+@app.route("/request-password-reset", methods=["POST"])
+def request_password_reset():
+    """Request password reset via email"""
+    try:
+        from email_config import send_password_reset_email
+        
+        data = request.get_json()
+        identifier = data.get("identifier", "").strip()  # Can be teacher_id or email
+        
+        if not identifier:
+            return jsonify({
+                "success": False, 
+                "message": "Please provide your Teacher ID or email"
+            })
+        
+        # Find teacher by ID or email
+        teacher = Teacher.query.filter(
+            (Teacher.teacher_id == identifier) | (Teacher.email == identifier)
+        ).first()
+        
+        if not teacher:
+            # Don't reveal if teacher exists (security)
+            return jsonify({
+                "success": True, 
+                "message": "If this account exists, a password reset link has been sent to the registered email."
+            })
+        
+        # Check if teacher has an email
+        if not teacher.email:
+            return jsonify({
+                "success": False,
+                "message": "No email address associated with this account. Please contact administrator."
+            })
+        
+        # Invalidate any existing tokens for this teacher
+        existing_tokens = PasswordResetToken.query.filter_by(
+            teacher_id=teacher.teacher_id,
+            used=False
+        ).all()
+        for token in existing_tokens:
+            token.mark_as_used()
+        
+        # Create new reset token
+        reset_token = PasswordResetToken(teacher.teacher_id, expiry_minutes=60)
+        db.session.add(reset_token)
+        db.session.commit()
+        
+        # Build reset link
+        reset_link = url_for('reset_password_page', 
+                           token=reset_token.token, 
+                           _external=True)
+        
+        # Send email
+        success, message = send_password_reset_email(
+            recipient_email=teacher.email,
+            teacher_name=teacher.name,
+            reset_link=reset_link,
+            teacher_id=teacher.teacher_id
+        )
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Password reset link has been sent to your email address."
+            })
+        else:
+            # Log the error but don't expose details to user
+            print(f"❌ Email sending failed: {message}")
+            return jsonify({
+                "success": False,
+                "message": "Failed to send email. Please contact administrator."
+            })
+            
+    except Exception as e:
+        print(f"❌ Password reset request error: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": "An error occurred. Please try again later."
+        })
+
+
+@app.route("/reset-password-rfid", methods=["POST"])
+def reset_password_rfid():
+    """Reset password using RFID verification"""
+    try:
+        from email_config import send_password_change_notification
+        
+        data = request.get_json()
+        rfid_code = data.get("rfid_code", "").strip()
+        new_password = data.get("new_password", "").strip()
+        confirm_password = data.get("confirm_password", "").strip()
+        
+        # Validation
+        if not rfid_code:
+            return jsonify({"success": False, "message": "Please scan your RFID card"})
+        
+        if not new_password or len(new_password) < 6:
+            return jsonify({
+                "success": False, 
+                "message": "Password must be at least 6 characters long"
+            })
+        
+        if new_password != confirm_password:
+            return jsonify({
+                "success": False, 
+                "message": "Passwords do not match"
+            })
+        
+        # Find teacher by RFID
+        teacher = Teacher.query.filter_by(rfid_code=rfid_code).first()
+        
+        if not teacher:
+            return jsonify({
+                "success": False, 
+                "message": "Invalid RFID card or no account associated"
+            })
+        
+        # Update password
+        teacher.set_password(new_password)
+        db.session.commit()
+        
+        # Send notification email (optional, don't fail if it doesn't work)
+        if teacher.email:
+            send_password_change_notification(
+                teacher.email, 
+                teacher.name, 
+                teacher.teacher_id
+            )
+        
+        return jsonify({
+            "success": True,
+            "message": "Password reset successful! You can now log in with your new password."
+        })
+        
+    except Exception as e:
+        print(f"❌ RFID password reset error: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": "An error occurred. Please try again."
+        })
+
+
+@app.route("/reset-password/<token>", methods=["GET"])
+def reset_password_page(token):
+    """Display password reset page"""
+    try:
+        # Verify token
+        reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        
+        if not reset_token or not reset_token.is_valid():
+            flash("This password reset link is invalid or has expired.", "error")
+            return redirect(url_for("index"))
+        
+        # Render password reset form
+        return render_template("reset_password.html", token=token)
+        
+    except Exception as e:
+        print(f"❌ Reset password page error: {str(e)}")
+        flash("An error occurred. Please try again.", "error")
+        return redirect(url_for("index"))
+
+
+@app.route("/reset-password", methods=["POST"])
+def reset_password():
+    """Process password reset"""
+    try:
+        from email_config import send_password_change_notification
+        
+        data = request.get_json()
+        token = data.get("token", "").strip()
+        new_password = data.get("new_password", "").strip()
+        confirm_password = data.get("confirm_password", "").strip()
+        
+        # Validation
+        if not new_password or len(new_password) < 6:
+            return jsonify({
+                "success": False,
+                "message": "Password must be at least 6 characters long"
+            })
+        
+        if new_password != confirm_password:
+            return jsonify({
+                "success": False,
+                "message": "Passwords do not match"
+            })
+        
+        # Verify token
+        reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        
+        if not reset_token or not reset_token.is_valid():
+            return jsonify({
+                "success": False,
+                "message": "This reset link is invalid or has expired"
+            })
+        
+        # Get teacher
+        teacher = Teacher.query.filter_by(teacher_id=reset_token.teacher_id).first()
+        
+        if not teacher:
+            return jsonify({
+                "success": False,
+                "message": "Teacher account not found"
+            })
+        
+        # Update password
+        teacher.set_password(new_password)
+        
+        # Mark token as used
+        reset_token.mark_as_used()
+        
+        db.session.commit()
+        
+        # Send notification email
+        if teacher.email:
+            send_password_change_notification(
+                teacher.email,
+                teacher.name,
+                teacher.teacher_id
+            )
+        
+        return jsonify({
+            "success": True,
+            "message": "Password reset successful! You can now log in with your new password."
+        })
+        
+    except Exception as e:
+        print(f"❌ Password reset error: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": "An error occurred. Please try again."
+        })
 
 
 @app.route("/dashboard")

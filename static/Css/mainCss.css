@@ -507,3 +507,402 @@ button[type="submit"]:active {
 .material-symbols-outlined {
   font-size: 20px;
 }
+
+/* ============================================================================
+   FORGOT PASSWORD MODAL STYLES
+   ============================================================================ */
+
+.forgot-password {
+  cursor: pointer;
+  transition: color 0.3s, text-decoration 0.3s;
+  display: inline-block;
+}
+
+.forgot-password:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Modal Base Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Forgot Password Modal Content */
+.forgot-password-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.close-modal {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #6b7280;
+  cursor: pointer;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-modal:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+/* Reset Tabs */
+.reset-tabs {
+  display: flex;
+  border-bottom: 2px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 12px 12px 0 0;
+}
+
+.reset-tab {
+  flex: 1;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.reset-tab:hover {
+  color: #1e40af;
+  background: rgba(30, 64, 175, 0.05);
+}
+
+.reset-tab.active {
+  color: #1e40af;
+  background: white;
+}
+
+.reset-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1e40af;
+}
+
+/* Reset Tab Content */
+.reset-tab-content {
+  display: none;
+  padding: 30px;
+}
+
+.reset-tab-content.active {
+  display: block;
+}
+
+/* Modal Header */
+.modal-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.modal-header h2 {
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 15px 0 10px;
+}
+
+.modal-header p {
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Form Inputs */
+.forgot-password-modal .input-group {
+  margin-bottom: 20px;
+}
+
+.forgot-password-modal .input-group label {
+  display: block;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.forgot-password-modal .input-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.forgot-password-modal .input-group input:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.forgot-password-modal .input-wrapper {
+  position: relative;
+}
+
+.forgot-password-modal .input-wrapper input {
+  padding-right: 45px;
+}
+
+.forgot-password-modal .password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.forgot-password-modal .password-toggle:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+/* Submit Button */
+.reset-submit-btn {
+  width: 100%;
+  background: #1e40af;
+  color: white;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.reset-submit-btn:hover {
+  background: #1e3a8a;
+}
+
+.reset-submit-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.reset-submit-btn .spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.reset-submit-btn.loading .spinner {
+  display: block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Reset Message */
+.reset-message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  display: none;
+}
+
+.reset-message.show {
+  display: block;
+}
+
+.reset-message.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.reset-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.reset-message.info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+/* Reset Info Box */
+.reset-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 15px;
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+  margin-top: 20px;
+}
+
+.reset-info .material-symbols-outlined {
+  color: #3b82f6;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.reset-info p {
+  color: #1e40af;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* RFID Scan Area */
+.rfid-scan-area {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.rfid-scan-area .rfid-animation {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.rfid-scan-area .rfid-animation::before {
+  content: '📡';
+  font-size: 40px;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+  50% { transform: scale(1.05); box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3); }
+}
+
+#rfid-scan-status {
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#rfid-scan-status.scanning {
+  color: #059669;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Password Fields */
+.password-fields {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .forgot-password-modal {
+    width: 95%;
+    padding: 0;
+  }
+  
+  .reset-tab-content {
+    padding: 20px;
+  }
+  
+  .reset-tab {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+  
+  .modal-header h2 {
+    font-size: 20px;
+  }
+}

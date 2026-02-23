@@ -29,6 +29,7 @@
   <!-- Right Panel - Login Form -->
   <div class="right-panel">
     <div class="login-container">
+
       <div class="logo">Edutrack</div>
       <h2>Welcome back, log in to your account</h2>
 
@@ -72,7 +73,7 @@
         </button>
       </form>
 
-      <p class="forgot-password">Forgot Password?</p>
+      <a href="#" id="forgot-password" class="forgot-password">Forgot Password?</a>
 
       <div class="divider">
         <div class="divider-line"></div>
@@ -109,7 +110,118 @@
     </div>
   </div>
 
+  <!-- Forgot Password Modal -->
+  <div id="forgotPasswordModal" class="modal">
+    <div class="modal-content forgot-password-modal">
+      <span id="closeForgotPasswordModal" class="close-modal">&times;</span>
+      
+      <!-- Tab Selection -->
+      <div class="reset-tabs">
+        <button class="reset-tab active" data-tab="email">Email Reset</button>
+        <button class="reset-tab" data-tab="rfid">RFID Reset</button>
+      </div>
+
+      <!-- Email Reset Tab -->
+      <div id="emailResetTab" class="reset-tab-content active">
+        <div class="modal-header">
+          <span class="material-symbols-outlined" style="font-size: 48px; color: #1e40af;">mail</span>
+          <h2>Reset Password via Email</h2>
+          <p>Enter your Teacher ID or email to receive a password reset link</p>
+        </div>
+        
+        <form id="emailResetForm">
+          <div class="input-group">
+            <label for="reset-identifier">Teacher ID or Email</label>
+            <input 
+              type="text" 
+              id="reset-identifier" 
+              placeholder="Enter your Teacher ID (e.g., T123) or email"
+              required
+            />
+          </div>
+          
+          <div id="email-reset-message" class="reset-message"></div>
+          
+          <button type="submit" class="reset-submit-btn">
+            <span class="spinner"></span>
+            <span>Send Reset Link</span>
+          </button>
+        </form>
+        
+        <div class="reset-info">
+          <span class="material-symbols-outlined">info</span>
+          <p>You'll receive an email with instructions to reset your password. The link expires in 60 minutes.</p>
+        </div>
+      </div>
+
+      <!-- RFID Reset Tab -->
+      <div id="rfidResetTab" class="reset-tab-content">
+        <div class="modal-header">
+          <span class="material-symbols-outlined" style="font-size: 48px; color: #1e40af;">nfc</span>
+          <h2>Reset Password via RFID</h2>
+          <p>Scan your RFID card to verify your identity, then set a new password</p>
+        </div>
+        
+        <form id="rfidResetForm">
+          <div class="rfid-scan-area">
+            <div class="rfid-animation"></div>
+            <p id="rfid-scan-status">Please scan your RFID card...</p>
+            <input type="hidden" id="rfid-code-input" />
+          </div>
+          
+          <div id="password-fields" class="password-fields" style="display: none;">
+            <div class="input-group">
+              <label for="rfid-new-password">New Password</label>
+              <div class="input-wrapper">
+                <input 
+                  type="password" 
+                  id="rfid-new-password" 
+                  placeholder="Enter new password (min 6 characters)"
+                  minlength="6"
+                  required
+                />
+                <button type="button" class="password-toggle" id="toggleNewPassword">
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="input-group">
+              <label for="rfid-confirm-password">Confirm Password</label>
+              <div class="input-wrapper">
+                <input 
+                  type="password" 
+                  id="rfid-confirm-password" 
+                  placeholder="Confirm new password"
+                  minlength="6"
+                  required
+                />
+                <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+            </div>
+            
+            <button type="submit" class="reset-submit-btn">
+              <span class="spinner"></span>
+              <span>Reset Password</span>
+            </button>
+          </div>
+          
+          <div id="rfid-reset-message" class="reset-message"></div>
+        </form>
+        
+        <div class="reset-info">
+          <span class="material-symbols-outlined">info</span>
+          <p>Your RFID card will verify your identity securely without requiring email access.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Main JS -->
   <script src="{{ url_for('static', filename='js/mainJS.js') }}"></script>
+    <!-- Main JS -->
+  <script src="{{ url_for('static', filename='js/full-screen.js') }}"></script>
 </body>
 </html>

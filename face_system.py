@@ -471,13 +471,21 @@ class FaceRecognitionSystem:
         face_width = face_x2 - face_x1
         face_height = face_y2 - face_y1
         
-        # LARGER zone for testing
-        zone_top = max(0, face_y1 - face_height * 3.0)  # Higher
-        zone_bottom = face_y1 + face_height * 0.5
-        zone_left = max(0, face_x1 - face_width * 1.5)  # Wider
-        zone_right = min(frame_w, face_x2 + face_width * 1.5)
+        # Distance-adaptive zone (matches frontend visualization)
+        # Smaller faces = farther away = larger zone multiplier
+        normal_face_width = 150  # Typical face width at normal distance
+        distance_factor = max(1.0, min(2.5, normal_face_width / face_width))
         
-        print(f"[ZONE] Face: {face_bbox}, Zone: [{zone_left}, {zone_top}, {zone_right}, {zone_bottom}]")
+        # Apply distance-adaptive multipliers (same as frontend)
+        height_multiplier = 3.5 * distance_factor  # Ranges from 3.5x to 8.75x
+        width_multiplier = 1.5 * distance_factor   # Ranges from 1.5x to 3.75x
+        
+        zone_top = max(0, face_y1 - face_height * height_multiplier)
+        zone_bottom = face_y1 + face_height * 0.5
+        zone_left = max(0, face_x1 - face_width * width_multiplier)
+        zone_right = min(frame_w, face_x2 + face_width * width_multiplier)
+        
+        print(f"[ZONE] Face: {face_bbox}, Distance: {distance_factor:.2f}x, Zone: [{zone_left}, {zone_top}, {zone_right}, {zone_bottom}]")
         return [int(zone_left), int(zone_top), int(zone_right), int(zone_bottom)]
     
     def detect_hands_and_check_modal(self, frame, faces, session_id):

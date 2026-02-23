@@ -840,8 +840,89 @@
             width: 100% !important;
         }
     </style>
+    <style>
+        /* Responsive Hand Raise Modal - Compact Version */
+        #handRaiseModal .modal-dialog {
+            max-width: 550px;
+            margin: 1.75rem auto;
+        }
+        
+        @media (max-width: 768px) {
+            #handRaiseModal .modal-dialog {
+                max-width: 95%;
+                margin: 0.5rem;
+            }
+            
+            #handRaiseModal .modal-body .row {
+                flex-direction: column;
+            }
+            
+            #handRaiseModal .modal-footer {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            #handRaiseModal .modal-footer button {
+                flex: 1 1 auto;
+                min-width: 100px;
+            }
+        }
+        
+        @media (min-width: 992px) {
+            #handRaiseModal .modal-dialog {
+                max-width: 600px;
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            #handRaiseModal .modal-dialog {
+                max-width: 650px;
+            }
+        }
+        
+        #handRaiseModal .modal-body {
+            padding: 1.25rem;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        #handRaiseModal #modalFaceImage {
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #handRaiseModal .modal-footer {
+            padding: 0.75rem 1rem;
+        }
+        
+        #handRaiseModal .modal-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        /* Ensure text doesn't wrap awkwardly */
+        #handRaiseModal .mb-2 strong,
+        #handRaiseModal .mb-3 strong {
+            display: inline-block;
+            min-width: 90px;
+        }
+        
+        /* Keep input fields properly sized */
+        #handRaiseModal #modalPointsInput {
+            max-width: 100%;
+        }
+        
+        /* Prevent content compression */
+        #handRaiseModal .alert {
+            white-space: normal;
+            word-wrap: break-word;
+        }
+    </style>
+    
     <div id="handRaiseModal" class="modal fade" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 75vw !important; width: 20vw !important;">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
@@ -850,14 +931,14 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-5 text-center">
-                            <div id="modalFaceImage" class="mb-3">
-                                <div style="font-size: 3rem;">👤</div>
-                                <small>Face Preview</small>
+                    <div class="row g-2 align-items-start">
+                        <div class="col-12 col-md-4 text-center">
+                            <div id="modalFaceImage" class="mb-2">
+                                <div style="font-size: 2.5rem;">👤</div>
+                                <small class="text-muted d-block mt-1">Face Preview</small>
                             </div>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-12 col-md-8">
                             <div class="mb-2">
                                 <strong>Name:</strong> <span id="modalPersonName">-</span>
                             </div>
@@ -867,7 +948,7 @@
                             <div class="mb-2">
                                 <strong>Section:</strong> <span id="modalPersonSection">-</span>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <strong>Confidence:</strong> <span id="modalPersonConfidence">-</span>
                             </div>
                             <div class="alert alert-warning p-2 mb-2">
@@ -875,32 +956,37 @@
                                 <span id="modalHandSide">Hand raised</span>
                             </div>
                             <div class="mb-2">
-                                <label for="modalPointsInput" class="form-label">Points:</label>
+                                <label for="modalPointsInput" class="form-label mb-1 d-block">Points:</label>
                                 <input type="number" class="form-control form-control-sm" id="modalPointsInput" min="0" max="100" value="5">
                             </div>
-                            <div class="form-text">
+                            <div class="form-text mb-2">
                                 <small>
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Voice commands: "five points", "increase by ten", "save points"
+                                    Voice: "five points", "increase by ten"
                                     <a href="#" class="ms-1" onclick="showVoiceCommandHelpModal()">Help</a>
                                 </small>
                             </div>
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-success" 
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-success w-100" 
                                         onclick="toggleVoiceRecognition()" id="voiceToggleBtn">
-                                    <i class="fas fa-microphone me-1"></i> <span id="voiceStatusBadge">Voice</span>
+                                    <i class="fas fa-microphone me-1"></i> <span id="voiceStatusBadge">Voice Commands</span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>Close
+                <div class="modal-footer d-flex justify-content-between flex-wrap">
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="showVoiceCommandHelpModal()">
+                        <i class="fas fa-question-circle me-1"></i>Help
                     </button>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="acknowledgeHandRaise()">
-                        <i class="fas fa-check me-1"></i>Acknowledge
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Close
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="acknowledgeHandRaise()">
+                            <i class="fas fa-check me-1"></i>Acknowledge
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1045,6 +1131,7 @@
     
     <!-- Virtual Keyboard JS -->
     <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/full-screen.js') }}"></script>
 
 </body>
 </html>

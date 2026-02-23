@@ -178,6 +178,34 @@
             border: none;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
+        
+        /* Force handRaiseModal to not compress */
+        #handRaiseModal .modal-dialog {
+            max-width: 700px;
+            min-width: 600px;
+            width: 700px;
+        }
+        
+        #handRaiseModal .modal-content {
+            min-height: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        #handRaiseModal .modal-body {
+            min-height: 350px;
+            padding: 20px;
+        }
+        
+        #handRaiseModal .student-info-card {
+            min-height: 200px;
+        }
+        
+        #handRaiseModal #modalFaceImage {
+            min-width: 150px;
+            min-height: 150px;
+        }
+        
         .hand-raise-icon {
             animation: handWave 2s infinite;
         }
@@ -240,4 +268,23 @@
             position: absolute;
             background: rgba(255, 255, 255, 0.8);
             z-index: 4;
+        }
+        /* Responsive adjustments for handRaiseModal */
+        @media (max-width: 768px) {
+            #handRaiseModal .modal-dialog {
+                max-width: 95%;
+                min-width: 320px;
+                width: 95%;
+                margin: 10px auto;
+            }
+            
+            #handRaiseModal .modal-body {
+                min-height: 400px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            #handRaiseModal .modal-dialog {
+                margin: 30px auto;
+            }
         }

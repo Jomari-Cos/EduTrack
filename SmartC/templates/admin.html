@@ -413,6 +413,7 @@
     <div style="display: none;">
       <button id="face-list-btn"></button>
       <button id="system-settings-btn"></button>
+      
       <button id="logout-btn"></button>
     </div>
 
@@ -426,6 +427,7 @@
           <div>
             <h1 class="text-xl font-bold text-gray-800" id="pageTitle">Dashboard Overview</h1>
             <p class="text-xs text-gray-500">{{ system_settings.school_address or 'Manage your school efficiently' }}</p>
+
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -1620,5 +1622,8 @@
       }
     });
   </script>
+  <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}?v=2.0"></script>
+   <script src="{{ url_for('static', filename='js/full-screen.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/full-screen.js') }}"></script>
 </body>
 </html>

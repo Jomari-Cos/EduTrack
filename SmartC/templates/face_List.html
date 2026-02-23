@@ -208,6 +208,8 @@
         <div class="row justify-content-center">
             <div class="col-md-10 col-lg-8 text-center">
                 <div class="card p-5 mb-4">
+
+                    <button id="goBack">← Back</button>
                     <h1 class="display-4 mb-4">
                         <i class="fas fa-robot me-2"></i>Face Recognition System
                     </h1>
@@ -403,5 +405,8 @@
         // Refresh stats every 30 seconds
         setInterval(loadDatabaseStats, 30000);
     </script>
+    <script src="{{ url_for('static', filename='js/full-screen.js') }}"></script>
+      <script src="{{ url_for('static', filename='js/virtual-keyboard.js') }}?v=2.0"></script>  
+      
 </body>
 </html>

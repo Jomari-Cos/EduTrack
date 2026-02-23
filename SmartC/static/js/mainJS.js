@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeRfidBtn = document.getElementById("closeRfidModal");
   const rfidResult = document.getElementById("rfidResult");
 
+  // Forgot Password elements
+  const forgotPasswordLink = document.getElementById("forgot-password");
+  const forgotPasswordModal = document.getElementById("forgotPasswordModal");
+  const closeForgotPasswordBtn = document.getElementById("closeForgotPasswordModal");
+
   // Password visibility state
   let isPasswordVisible = false;
 
@@ -316,4 +321,297 @@ function showGreenCheckmarkAnimation() {
       if (message) message.textContent = "";
     }
   })();
+
+  // ============================================================================
+  // FORGOT PASSWORD FUNCTIONALITY
+  // ============================================================================
+
+  // Open Forgot Password Modal
+  forgotPasswordLink?.addEventListener("click", (e) => {
+    e.preventDefault();
+    forgotPasswordModal.classList.add("active");
+  });
+
+  // Close Forgot Password Modal
+  closeForgotPasswordBtn?.addEventListener("click", () => {
+    forgotPasswordModal.classList.remove("active");
+    resetForgotPasswordForms();
+  });
+
+  // Close modal if click outside
+  forgotPasswordModal?.addEventListener("click", (e) => {
+    if (e.target === forgotPasswordModal) {
+      forgotPasswordModal.classList.remove("active");
+      resetForgotPasswordForms();
+    }
+  });
+
+  // Tab switching
+  const resetTabs = document.querySelectorAll(".reset-tab");
+  const resetTabContents = document.querySelectorAll(".reset-tab-content");
+
+  resetTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const tabName = tab.getAttribute("data-tab");
+      
+      // Update active tab
+      resetTabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      
+      // Update active content
+      resetTabContents.forEach(content => {
+        content.classList.remove("active");
+      });
+      document.getElementById(`${tabName}ResetTab`).classList.add("active");
+      
+      // Reset forms when switching tabs
+      resetForgotPasswordForms();
+    });
+  });
+
+  // ============================================================================
+  // EMAIL RESET FUNCTIONALITY
+  // ============================================================================
+
+  const emailResetForm = document.getElementById("emailResetForm");
+  const emailResetMessage = document.getElementById("email-reset-message");
+
+  emailResetForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const identifier = document.getElementById("reset-identifier").value.trim();
+    const submitBtn = emailResetForm.querySelector(".reset-submit-btn");
+    
+    if (!identifier) {
+      showResetMessage(emailResetMessage, "Please enter your Teacher ID or email", "error");
+      return;
+    }
+    
+    // Show loading state
+    submitBtn.classList.add("loading");
+    submitBtn.disabled = true;
+    emailResetMessage.classList.remove("show");
+    
+    try {
+      const response = await fetch("/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: identifier })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        showResetMessage(emailResetMessage, result.message, "success");
+        emailResetForm.reset();
+        
+        // Close modal after 3 seconds
+        setTimeout(() => {
+          forgotPasswordModal.classList.remove("active");
+          resetForgotPasswordForms();
+        }, 3000);
+      } else {
+        showResetMessage(emailResetMessage, result.message, "error");
+      }
+    } catch (error) {
+      console.error("Error requesting password reset:", error);
+      showResetMessage(emailResetMessage, "Something went wrong. Please try again.", "error");
+    } finally {
+      submitBtn.classList.remove("loading");
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ============================================================================
+  // RFID RESET FUNCTIONALITY
+  // ============================================================================
+
+  const rfidResetForm = document.getElementById("rfidResetForm");
+  const rfidScanStatus = document.getElementById("rfid-scan-status");
+  const rfidCodeInput = document.getElementById("rfid-code-input");
+  const passwordFields = document.getElementById("password-fields");
+  const rfidResetMessage = document.getElementById("rfid-reset-message");
+  
+  const toggleNewPasswordBtn = document.getElementById("toggleNewPassword");
+  const toggleConfirmPasswordBtn = document.getElementById("toggleConfirmPassword");
+  const rfidNewPasswordInput = document.getElementById("rfid-new-password");
+  const rfidConfirmPasswordInput = document.getElementById("rfid-confirm-password");
+
+  // RFID scanning for password reset
+  let rfidResetBuffer = "";
+  let isRfidResetScanning = false;
+
+  // Password visibility toggles for RFID reset
+  toggleNewPasswordBtn?.addEventListener("click", () => {
+    togglePasswordField(rfidNewPasswordInput, toggleNewPasswordBtn);
+  });
+
+  toggleConfirmPasswordBtn?.addEventListener("click", () => {
+    togglePasswordField(rfidConfirmPasswordInput, toggleConfirmPasswordBtn);
+  });
+
+  function togglePasswordField(input, button) {
+    const icon = button.querySelector(".material-symbols-outlined");
+    if (input.type === "password") {
+      input.type = "text";
+      icon.textContent = "visibility_off";
+    } else {
+      input.type = "password";
+      icon.textContent = "visibility";
+    }
+  }
+
+  // RFID scanning logic for password reset
+  document.addEventListener("keydown", (e) => {
+    // Only scan when RFID reset tab is active and modal is open
+    const rfidTab = document.getElementById("rfidResetTab");
+    if (!forgotPasswordModal?.classList.contains("active") || 
+        !rfidTab?.classList.contains("active")) {
+      return;
+    }
+
+    // Handle Enter key (end of scan)
+    if (e.key === "Enter" && isRfidResetScanning) {
+      e.preventDefault();
+      if (!rfidResetBuffer) return;
+
+      rfidCodeInput.value = rfidResetBuffer;
+      rfidScanStatus.textContent = "✅ RFID card verified! Please enter your new password.";
+      rfidScanStatus.classList.remove("scanning");
+      rfidScanStatus.style.color = "#059669";
+      
+      // Show password fields
+      passwordFields.style.display = "block";
+      
+      isRfidResetScanning = false;
+      rfidResetBuffer = "";
+    }
+    // Start scan on first character
+    else if (!isRfidResetScanning && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+      isRfidResetScanning = true;
+      rfidResetBuffer = e.key;
+      rfidScanStatus.textContent = `🔍 Scanning: ${'*'.repeat(rfidResetBuffer.length)}`;
+      rfidScanStatus.classList.add("scanning");
+      rfidResetMessage.classList.remove("show");
+    }
+    // Continue scanning
+    else if (isRfidResetScanning && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+      rfidResetBuffer += e.key;
+      rfidScanStatus.textContent = `🔍 Scanning: ${'*'.repeat(rfidResetBuffer.length)}`;
+    }
+    // Handle backspace
+    else if (isRfidResetScanning && e.key === "Backspace") {
+      e.preventDefault();
+      rfidResetBuffer = rfidResetBuffer.slice(0, -1);
+      if (rfidResetBuffer.length === 0) {
+        resetRfidResetScanning();
+      } else {
+        rfidScanStatus.textContent = `🔍 Scanning: ${'*'.repeat(rfidResetBuffer.length)}`;
+      }
+    }
+  });
+
+  function resetRfidResetScanning() {
+    rfidResetBuffer = "";
+    isRfidResetScanning = false;
+    rfidScanStatus.textContent = "Please scan your RFID card...";
+    rfidScanStatus.classList.remove("scanning");
+    rfidScanStatus.style.color = "";
+  }
+
+  // RFID Reset Form Submission
+  rfidResetForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const rfidCode = rfidCodeInput.value.trim();
+    const newPassword = rfidNewPasswordInput.value.trim();
+    const confirmPassword = rfidConfirmPasswordInput.value.trim();
+    const submitBtn = rfidResetForm.querySelector(".reset-submit-btn");
+    
+    // Validation
+    if (!rfidCode) {
+      showResetMessage(rfidResetMessage, "Please scan your RFID card first", "error");
+      return;
+    }
+    
+    if (!newPassword || newPassword.length < 6) {
+      showResetMessage(rfidResetMessage, "Password must be at least 6 characters long", "error");
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      showResetMessage(rfidResetMessage, "Passwords do not match", "error");
+      return;
+    }
+    
+    // Show loading state
+    submitBtn.classList.add("loading");
+    submitBtn.disabled = true;
+    rfidResetMessage.classList.remove("show");
+    
+    try {
+      const response = await fetch("/reset-password-rfid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rfid_code: rfidCode,
+          new_password: newPassword,
+          confirm_password: confirmPassword
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        showResetMessage(rfidResetMessage, result.message, "success");
+        
+        // Close modal and redirect after 2 seconds
+        setTimeout(() => {
+          forgotPasswordModal.classList.remove("active");
+          resetForgotPasswordForms();
+        }, 2000);
+      } else {
+        showResetMessage(rfidResetMessage, result.message, "error");
+      }
+    } catch (error) {
+      console.error("Error resetting password with RFID:", error);
+      showResetMessage(rfidResetMessage, "Something went wrong. Please try again.", "error");
+    } finally {
+      submitBtn.classList.remove("loading");
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ============================================================================
+  // HELPER FUNCTIONS
+  // ============================================================================
+
+  function showResetMessage(element, text, type) {
+    if (!element) return;
+    element.textContent = text;
+    element.className = `reset-message ${type} show`;
+  }
+
+  function resetForgotPasswordForms() {
+    // Reset email form
+    emailResetForm?.reset();
+    emailResetMessage?.classList.remove("show");
+    
+    // Reset RFID form
+    rfidResetForm?.reset();
+    rfidCodeInput.value = "";
+    passwordFields.style.display = "none";
+    rfidResetMessage?.classList.remove("show");
+    resetRfidResetScanning();
+    
+    // Reset password field types
+    if (rfidNewPasswordInput) rfidNewPasswordInput.type = "password";
+    if (rfidConfirmPasswordInput) rfidConfirmPasswordInput.type = "password";
+    
+    // Reset toggle button icons
+    const newPwdIcon = toggleNewPasswordBtn?.querySelector(".material-symbols-outlined");
+    const confirmPwdIcon = toggleConfirmPasswordBtn?.querySelector(".material-symbols-outlined");
+    if (newPwdIcon) newPwdIcon.textContent = "visibility";
+    if (confirmPwdIcon) confirmPwdIcon.textContent = "visibility";
+  }
 });
